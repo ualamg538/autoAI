@@ -8,9 +8,15 @@ class Km77Spider(scrapy.Spider):
     start_urls = ["https://www.km77.com/coches"]
 
     custom_settings = {
-        "DOWNLOAD_DELAY": 1.5,
-        "RANDOMIZE_DOWNLOAD_DELAY": True,
-        "CONCURRENT_REQUESTS_PER_DOMAIN": 2,
+        "DOWNLOAD_DELAY": 0.3,
+        "RANDOMIZE_DOWNLOAD_DELAY": False,
+        "CONCURRENT_REQUESTS": 16,
+        "CONCURRENT_REQUESTS_PER_DOMAIN": 16,
+        "AUTOTHROTTLE_ENABLED": True,
+        "AUTOTHROTTLE_START_DELAY": 0.3,
+        "AUTOTHROTTLE_MAX_DELAY": 3.0,
+        "AUTOTHROTTLE_TARGET_CONCURRENCY": 8.0,
+        "JOBDIR": "crawls/km77-1",
         "ROBOTSTXT_OBEY": False,
         "DEFAULT_REQUEST_HEADERS": {
             "User-Agent": (
