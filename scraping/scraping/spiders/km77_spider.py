@@ -1,6 +1,4 @@
 import scrapy
-from bs4 import BeautifulSoup
-
 
 class Km77Spider(scrapy.Spider):
     name = "km77_spider"
@@ -75,20 +73,20 @@ class Km77Spider(scrapy.Spider):
     def parse_model(self, response):
         brand_name = response.meta["brand_name"]
         model_name = response.meta["model_name"]
-        soup = BeautifulSoup(response.text, "html.parser")
-        for veh_container in soup.select("div.veh-container"):
-            a_tag = veh_container.select_one("a")
-            if not a_tag:
-                continue
-            submodel_href = a_tag.get("href", "")
-            veh_name_tag = a_tag.select_one(".veh-name")
-            submodel_name = veh_name_tag.contents[0].strip() if veh_name_tag and veh_name_tag.contents else ""
+
+        for veh_container in response.css("div.veh-container"):
+            submodel_href = veh_container.css("a::attr(href)").get("")
             if not submodel_href:
                 continue
+
+            submodel_name = veh_container.css(".veh-name::text").get("").strip()
+            foto_url = veh_container.css("img.lazy::attr(data-original)").get("")
+
             submodel_url = (
                 f"https://www.km77.com{submodel_href}"
                 "?market[]=available&market[]=discontinued"
             )
+
             yield response.follow(
                 submodel_url,
                 callback=self.parse_submodel,
@@ -97,6 +95,7 @@ class Km77Spider(scrapy.Spider):
                     "model_name": model_name,
                     "submodel_name": submodel_name,
                     "submodel_href": submodel_href,
+                    "foto_url": foto_url,
                 },
             )
 
@@ -107,11 +106,18 @@ class Km77Spider(scrapy.Spider):
         brand_name = response.meta["brand_name"]
         model_name = response.meta["model_name"]
         submodel_name = response.meta["submodel_name"]
-        for version_link in response.css("a.vehicle-link"):
-            version_text = version_link.css("::text").get("").strip()
-            version_href = version_link.attrib.get("href", "")
+        foto_url = response.meta["foto_url"]
+
+        for row in response.css("tr.tr-thematic"):
+            version_link = row.css("div.d-flex.flex-row")
+            version_text = version_link.css("a.vehicle-link::text").get("").strip()
+            version_href = version_link.css("a.vehicle-link::attr(href)").get("")
+            fecha = version_link.css("span.text-primary::text").get("").strip()
+            maletero = row.css("td:last-child::text").get("").strip()
+
             if not version_href:
                 continue
+
             yield response.follow(
                 f"https://www.km77.com{version_href}",
                 callback=self.parse_version,
@@ -119,8 +125,11 @@ class Km77Spider(scrapy.Spider):
                     "brand_name": brand_name,
                     "model_name": model_name,
                     "submodel_name": submodel_name,
+                    "foto_url": foto_url,
                     "version_name": version_text,
                     "version_href": version_href,
+                    "fecha": fecha,
+                    "maletero": maletero,
                 },
             )
 
@@ -138,16 +147,6 @@ class Km77Spider(scrapy.Spider):
                 f"//tr[th[contains(text(), '{label}')]]/td//text()"
             ).get("").strip()
 
-        def xpath_row_all(label):
-            """Igual que xpath_row pero devuelve todos los textos de la fila."""
-            return [
-                t.strip()
-                for t in response.xpath(
-                    f"//tr[th[contains(text(), '{label}')]]/td//text()"
-                ).getall()
-                if t.strip()
-            ]
-
         def xpath_cell_all(label):
             """
             Para filas donde la etiqueta está en un <td> (no <th>),
@@ -162,7 +161,6 @@ class Km77Spider(scrapy.Spider):
             ]
 
         # ── Campos simples ───────────────────────────────────────
-        nombre      = response.css("h1.mb-4::text").get("").strip()
         precio      = response.css(".text-nowrap::text").get("").strip()
 
         aceleracion     = xpath_row("Aceleración 0-100 km/h")
@@ -178,10 +176,7 @@ class Km77Spider(scrapy.Spider):
         traccion        = xpath_row("Tracción")
         cambios         = xpath_row("Caja de cambios")
         num_velocidades = xpath_row("Número de velocidades")
-
-        # ── Maletero (puede tener varios valores) ────────────────
-        maletero_vals = xpath_row_all("Volúmenes de maletero")
-        maletero = " / ".join(maletero_vals) if maletero_vals else ""
+        velocidad_maxima = xpath_row("Velocidad máxima")
 
         # ── Consumo Medio / Combinado ────────────────────────────
         consumo_vals = xpath_cell_all("Medio") or xpath_cell_all("Combinado")
@@ -197,7 +192,8 @@ class Km77Spider(scrapy.Spider):
             "submodel": response.meta.get("submodel_name"),
             "version":  response.meta.get("version_name"),
             "url":      response.url,
-            "nombre_h1":               nombre,
+            "foto_url": response.meta.get("foto_url"),
+            "fecha": response.meta.get("fecha"),
             "precio":                  precio,
             "aceleracion_0_100":       aceleracion,
             "carroceria":              carroceria,
@@ -206,7 +202,7 @@ class Km77Spider(scrapy.Spider):
             "longitud":                longitud,
             "anchura":                 anchura,
             "altura":                  altura,
-            "maletero":                maletero,
+            "maletero":                response.meta.get("maletero"),
             "combustible":             combustible,
             "potencia_maxima":         potencia,
             "peso":                    peso,
@@ -214,5 +210,6 @@ class Km77Spider(scrapy.Spider):
             "traccion":                traccion,
             "caja_cambios":            cambios,
             "num_velocidades":         num_velocidades,
+            "velocidad_maxima":         velocidad_maxima,
             "deposito_gasolina":       deposito_gasolina,
         }

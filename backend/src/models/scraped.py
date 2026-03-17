@@ -1,11 +1,12 @@
 # Modelos de datos para los elementos scrapeados
-from fastapi import FastAPI
 from pydantic import BaseModel
 
 
 class CocheScrap(BaseModel):
     nombre: str
     marca: str
+    modelo: str
+    submodelo: str
     foto_url: str
     carroceria: str
     puertas: str
@@ -13,11 +14,9 @@ class CocheScrap(BaseModel):
     longitud: str
     anchura: str
     altura: str
-    distancia_suelo: str    
     capacidad_maletero: str
-    version: str
     precio: str
-    fecha_inicio: str
+    fecha_inicio: str # Para sacarlo tengo que sacarlo de nombre_h1 y hacer un split o algo parecido
     fecha_fin: str
     combustible: str
     potencia: str
@@ -26,9 +25,11 @@ class CocheScrap(BaseModel):
     peso : str
     consumo_medio: str
     traccion: str
-    transmision: str
     numero_marchas: str
     capacidad_deposito: str
+    caja_cambios: str
+    url: str
+    # Opcionales
     numero_airbags: str
     control_crucero: str
     asistente_colision: str

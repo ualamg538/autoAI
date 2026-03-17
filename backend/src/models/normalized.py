@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from pydantic_core import Url
 
 class Marca(BaseModel):
     nombre: str
@@ -16,7 +17,6 @@ class Modelo(BaseModel):
     longitud: float
     anchura: float
     altura: float
-    distancia_suelo: float    
     capacidad_maletero: float
 
 class Version(BaseModel):
@@ -35,6 +35,7 @@ class Version(BaseModel):
     transmision: str
     numero_marchas: int
     capacidad_deposito: float
+    url : str
 
 class Equipamiento(BaseModel):
     version: Version
