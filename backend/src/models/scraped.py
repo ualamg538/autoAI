@@ -16,9 +16,7 @@ class CocheScrap(BaseModel):
     altura: str
     capacidad_maletero: str
     precio: str
-    fecha_inicio: str # Para sacarlo tengo que sacarlo de nombre_h1 y hacer un split o algo parecido
-    fecha_fin: str
-    combustible: str
+    fechas: str # fecha_inicio - fecha_fin
     potencia: str
     aceleracion: str
     velocidad_maxima: str
@@ -30,16 +28,16 @@ class CocheScrap(BaseModel):
     caja_cambios: str
     url: str
     # Opcionales
-    numero_airbags: str
-    control_crucero: str
-    asistente_colision: str
-    aire_acondicionado: str
-    camara : str
-    sensores_estacionamiento: str
-    luces_automaticas: str
-    pantalla_pulgadas: str
-    android_auto_carplay: str
-    bluetooth: str
-    distintivo_medioambiental: str
+    # numero_airbags: str
+    # control_crucero: str
+    # asistente_colision: str
+    # aire_acondicionado: str
+    # camara : str
+    # sensores_estacionamiento: str
+    # luces_automaticas: str
+    # pantalla_pulgadas: str
+    # android_auto_carplay: str
+    # bluetooth: str
+    # distintivo_medioambiental: str
 
 

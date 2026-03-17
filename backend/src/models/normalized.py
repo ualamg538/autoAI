@@ -1,52 +1,40 @@
 # Modelos de datos para los elementos normalizados
 
-from fastapi import FastAPI
+import datetime
+
 from pydantic import BaseModel
-from pydantic_core import Url
-
-class Marca(BaseModel):
-    nombre: str
-
-class Modelo(BaseModel):
-    nombre: str
-    marca: Marca
-    foto_url: str
-    carroceria: str
-    puertas: int
-    plazas: int
-    longitud: float
-    anchura: float
-    altura: float
-    capacidad_maletero: float
+from typing import Optional
 
 class Version(BaseModel):
+    marca : str
+    modelo : str
+    submodelo : str
     nombre: str
-    modelo : Modelo
-    precio: float
-    fecha_inicio: str
-    fecha_fin: str
-    combustible: str
-    potencia: float
-    aceleracion: float
-    velocidad_maxima: float
-    peso : float
-    consumo_medio: float
+    foto_url: str
+    # Todo lo que varía entre versiones
+    plazas: int
+    longitud: float
+    anchura: Optional[float]
+    altura: Optional[float]
+    capacidad_maletero: float
+    carroceria: str
+    puertas: Optional[int]
+    
+    precio: Optional[float]
+    fecha_inicio: Optional[datetime.date]
+    fecha_fin: Optional[datetime.date]
+    
+    combustible: Optional[str]
+    potencia: Optional[float]
+    aceleracion: Optional[float]
+    velocidad_maxima: Optional[float]
+    peso: Optional[float]
+    consumo_medio: Optional[float]
     traccion: str
     transmision: str
     numero_marchas: int
-    capacidad_deposito: float
-    url : str
+    capacidad_deposito: Optional[float]
+    
+    url: str
 
-class Equipamiento(BaseModel):
-    version: Version
-    numero_airbags: int
-    control_crucero: bool
-    asistente_colision: bool
-    aire_acondicionado: bool
-    camara : bool
-    sensores_estacionamiento: bool
-    luces_automaticas: bool
-    pantalla_pulgadas: float
-    android_auto_carplay: bool
-    bluetooth: bool
-    distintivo_medioambiental: str
+
