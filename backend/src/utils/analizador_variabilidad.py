@@ -19,20 +19,20 @@ from pathlib import Path
 # ── Campos que mapean a cada nivel ───────────────────────────────────────────
 
 CAMPOS_CANDIDATOS = {
-    "marca":     ["brand"],
-    "modelo":    ["brand", "model", "carroceria", "puertas", "plazas",
-                  "longitud", "anchura", "altura", "maletero"],
-    "submodelo": ["brand", "model", "submodel", "carroceria", "puertas",
-                  "plazas", "longitud", "anchura", "altura", "maletero",
+    "marca":     ["marca"],
+    "modelo":    ["marca", "modelo", "carroceria", "puertas", "plazas",
+                  "longitud", "anchura", "altura", "capacidad_maletero"],
+    "submodelo": ["marca", "modelo", "submodelo", "carroceria", "puertas",
+                  "plazas", "longitud", "anchura", "altura", "capacidad_maletero",
                   "foto_url"],
     "version":   None,  # todo el resto
 }
 
 # Clave que identifica cada nivel (los valores que forman el "grupo")
 NIVEL_KEYS = {
-    "marca":     ("brand",),
-    "modelo":    ("brand", "model"),
-    "submodelo": ("brand", "model", "submodel"),
+    "marca":     ("marca",),
+    "modelo":    ("marca", "modelo"),
+    "submodelo": ("marca", "modelo", "submodelo"),
 }
 
 
