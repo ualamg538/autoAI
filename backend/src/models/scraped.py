@@ -3,11 +3,15 @@ from pydantic import BaseModel
 
 
 class CocheScrap(BaseModel):
-    nombre: str
     marca: str
     modelo: str
     submodelo: str
+    nombre: str
+    url: str
     foto_url: str
+    fechas: str # fecha_inicio - fecha_fin
+    precio: str
+    aceleracion: str
     carroceria: str
     puertas: str
     plazas: str
@@ -15,18 +19,15 @@ class CocheScrap(BaseModel):
     anchura: str
     altura: str
     capacidad_maletero: str
-    precio: str
-    fechas: str # fecha_inicio - fecha_fin
+    combustible: str
     potencia: str
-    aceleracion: str
-    velocidad_maxima: str
-    peso : str
+    peso: str
     consumo_medio: str
     traccion: str
-    numero_marchas: str
-    capacidad_deposito: str
     caja_cambios: str
-    url: str
+    numero_marchas: str
+    velocidad_maxima: str
+    capacidad_deposito: str
     # Opcionales
     # numero_airbags: str
     # control_crucero: str
@@ -39,5 +40,3 @@ class CocheScrap(BaseModel):
     # android_auto_carplay: str
     # bluetooth: str
     # distintivo_medioambiental: str
-
-

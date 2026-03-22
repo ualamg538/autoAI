@@ -183,33 +183,33 @@ class Km77Spider(scrapy.Spider):
         consumo = " / ".join(consumo_vals) if consumo_vals else ""
 
         # ── Depósito de gasolina ─────────────────────────────────
-        deposito_vals = xpath_cell_all("Gasolina")
+        deposito_vals = xpath_cell_all("Gasolina") or xpath_cell_all("Gasóleo")
         deposito_gasolina = " / ".join(deposito_vals) if deposito_vals else ""
 
         yield {
-            "brand":    response.meta.get("brand_name"),
-            "model":    response.meta.get("model_name"),
-            "submodel": response.meta.get("submodel_name"),
-            "version":  response.meta.get("version_name"),
+            "marca":    response.meta.get("brand_name"),
+            "modelo":    response.meta.get("model_name"),
+            "submodelo": response.meta.get("submodel_name"),
+            "nombre":  response.meta.get("version_name"),
             "url":      response.url,
             "foto_url": response.meta.get("foto_url"),
-            "fecha": response.meta.get("fecha"),
+            "fechas": response.meta.get("fecha"),
             "precio":                  precio,
-            "aceleracion_0_100":       aceleracion,
+            "aceleracion":             aceleracion,
             "carroceria":              carroceria,
             "puertas":                 puertas,
             "plazas":                  plazas,
             "longitud":                longitud,
             "anchura":                 anchura,
             "altura":                  altura,
-            "maletero":                response.meta.get("maletero"),
+            "capacidad_maletero":      response.meta.get("maletero"),
             "combustible":             combustible,
-            "potencia_maxima":         potencia,
+            "potencia":                potencia,
             "peso":                    peso,
-            "consumo_medio_combinado": consumo,
+            "consumo_medio":           consumo,
             "traccion":                traccion,
             "caja_cambios":            cambios,
-            "num_velocidades":         num_velocidades,
+            "numero_marchas":         num_velocidades,
             "velocidad_maxima":         velocidad_maxima,
-            "deposito_gasolina":       deposito_gasolina,
+            "capacidad_deposito":       deposito_gasolina,
         }
