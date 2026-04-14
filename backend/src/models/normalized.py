@@ -13,7 +13,7 @@ class Version(BaseModel):
     foto_url: str
     # Todo lo que varía entre versiones
     plazas: int
-    longitud: float
+    longitud: Optional[float]
     anchura: Optional[float]
     altura: Optional[float]
     capacidad_maletero: float
