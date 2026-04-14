@@ -184,7 +184,7 @@ class Km77Spider(scrapy.Spider):
 
         # ── Depósito de gasolina ─────────────────────────────────
         deposito_vals = xpath_cell_all("Gasolina") or xpath_cell_all("Gasóleo")
-        deposito_gasolina = " / ".join(deposito_vals) if deposito_vals else ""
+        deposito_gasolina = " / ".join(deposito_vals) if deposito_vals else (xpath_row("Capacidad") or "")
 
         yield {
             "marca":    response.meta.get("brand_name"),
