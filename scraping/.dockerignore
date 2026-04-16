@@ -1,0 +1,16 @@
+crawls
+*.json
+*.csv
+.scrapy
+__pycache__
+*.pyc
+.venv
+venv
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+Dockerfile
+.dockerignore
+*.md

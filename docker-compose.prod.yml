@@ -1,0 +1,22 @@
+services:
+  bd:
+    restart: unless-stopped
+
+  backend:
+    build:
+      target: prod
+    restart: unless-stopped
+
+  frontend:
+    build:
+      target: prod
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  scraper:
+    build:
+      target: prod
+    restart: unless-stopped
