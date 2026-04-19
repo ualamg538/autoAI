@@ -1,7 +1,12 @@
 import json
 import re
 import datetime
-from models import scraped, normalized
+from pathlib import Path
+
+import psycopg
+
+from ..core.config import settings
+from ..models import scraped, normalized
 
 
 def parse_opcional(valor: str, tipo=None):
@@ -75,62 +80,130 @@ def normalizar_submodelo(valor: str) -> str:
     return re.sub(r"[\n|]+", " ", valor).strip().lower()
 
 
-with open("scraping/km77_output.json", "r", encoding="utf-8") as f:
-    datos = json.load(f)
+def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
+    fecha_inicio, fecha_fin = parse_fechas(c.fechas)
+    return normalized.Version(
+        marca=c.marca.strip().lower(),
+        modelo=c.modelo.strip().lower(),
+        submodelo=normalizar_submodelo(c.submodelo),
+        nombre=c.nombre.strip().lower(),
+        foto_url=c.foto_url.strip(),
 
-coches_scrap = [scraped.CocheScrap(**coche_data) for coche_data in datos]
+        plazas=int(c.plazas),
+        longitud=parse_dimension_mm(c.longitud),
+        anchura=parse_dimension_mm(c.anchura),
+        altura=parse_dimension_mm(c.altura),
+        capacidad_maletero=float(c.capacidad_maletero) if c.capacidad_maletero else None,
+        carroceria=c.carroceria.strip().lower(),
+        puertas=parse_opcional(c.puertas, int),
 
-coches_normalizados = []
-errores = []
+        precio=parse_opcional(
+            c.precio.replace("€", "").replace(".", "").replace(",", ".").strip(), float
+        ),
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
 
-for i, c in enumerate(coches_scrap):
-    try:
-        version = normalized.Version(
-            marca=c.marca.strip().lower(),
-            modelo=c.modelo.strip().lower(),
-            submodelo=normalizar_submodelo(c.submodelo),
-            nombre=c.nombre.strip().lower(),
-            foto_url=c.foto_url.strip(),
+        combustible="electrico" if not c.combustible.strip() else c.combustible.strip().lower(),
+        potencia=parse_potencia(c.potencia),
+        aceleracion=parse_opcional(
+            c.aceleracion.replace(" s", "").replace(",", "."), float
+        ),
+        velocidad_maxima=parse_opcional(
+            c.velocidad_maxima.replace(" km/h", "").replace(",", "."), float
+        ),
+        peso=parse_opcional(
+            c.peso.replace(" kg", "").replace(".", "").replace(",", "."), float
+        ),
+        consumo_medio=parse_consumo(c.consumo_medio),
+        traccion=c.traccion.strip().lower(),
+        transmision=c.caja_cambios.strip().lower(),
+        numero_marchas=int(c.numero_marchas) if c.numero_marchas.strip() else 0,
+        capacidad_deposito=parse_capacidad_deposito(c.capacidad_deposito),
 
-            plazas=int(c.plazas),
-            longitud=parse_dimension_mm(c.longitud),
-            anchura=parse_dimension_mm(c.anchura),
-            altura=parse_dimension_mm(c.altura),
-            capacidad_maletero=float(c.capacidad_maletero) if c.capacidad_maletero else None,
-            carroceria=c.carroceria.strip().lower(),
-            puertas=parse_opcional(c.puertas, int),
+        url=c.url.strip(),
+    )
 
-            precio=parse_opcional(
-                c.precio.replace("€", "").replace(".", "").replace(",", ".").strip(), float
-            ),
-            fecha_inicio=parse_fechas(c.fechas)[0],
-            fecha_fin=parse_fechas(c.fechas)[1],
 
-            combustible="electrico" if not c.combustible.strip() else c.combustible.strip().lower(),
-            potencia=parse_potencia(c.potencia),
-            aceleracion=parse_opcional(
-                c.aceleracion.replace(" s", "").replace(",", "."), float
-            ),
-            velocidad_maxima=parse_opcional(
-                c.velocidad_maxima.replace(" km/h", "").replace(",", "."), float
-            ),
-            peso=parse_opcional(
-                c.peso.replace(" kg", "").replace(".", "").replace(",", "."), float
-            ),
-            consumo_medio=parse_consumo(c.consumo_medio),
-            traccion=c.traccion.strip().lower(),
-            transmision=c.caja_cambios.strip().lower(),
-            numero_marchas=int(c.numero_marchas) if c.numero_marchas.strip() else 0,
-            capacidad_deposito=parse_capacidad_deposito(c.capacidad_deposito),
+INSERT_SQL = """
+INSERT INTO cars (
+    marca, modelo, submodelo, nombre, url, foto_url,
+    fecha_inicio, fecha_fin, precio, carroceria, puertas, plazas,
+    longitud, anchura, altura, capacidad_maletero,
+    combustible, potencia, aceleracion, velocidad_maxima, peso,
+    consumo_medio, traccion, transmision, numero_marchas, capacidad_deposito
+) VALUES (
+    %(marca)s, %(modelo)s, %(submodelo)s, %(nombre)s, %(url)s, %(foto_url)s,
+    %(fecha_inicio)s, %(fecha_fin)s, %(precio)s, %(carroceria)s, %(puertas)s, %(plazas)s,
+    %(longitud)s, %(anchura)s, %(altura)s, %(capacidad_maletero)s,
+    %(combustible)s, %(potencia)s, %(aceleracion)s, %(velocidad_maxima)s, %(peso)s,
+    %(consumo_medio)s, %(traccion)s, %(transmision)s, %(numero_marchas)s, %(capacidad_deposito)s
+)
+ON CONFLICT (url) DO UPDATE SET
+    marca              = EXCLUDED.marca,
+    modelo             = EXCLUDED.modelo,
+    submodelo          = EXCLUDED.submodelo,
+    nombre             = EXCLUDED.nombre,
+    foto_url           = EXCLUDED.foto_url,
+    fecha_inicio       = EXCLUDED.fecha_inicio,
+    fecha_fin          = EXCLUDED.fecha_fin,
+    precio             = EXCLUDED.precio,
+    carroceria         = EXCLUDED.carroceria,
+    puertas            = EXCLUDED.puertas,
+    plazas             = EXCLUDED.plazas,
+    longitud           = EXCLUDED.longitud,
+    anchura            = EXCLUDED.anchura,
+    altura             = EXCLUDED.altura,
+    capacidad_maletero = EXCLUDED.capacidad_maletero,
+    combustible        = EXCLUDED.combustible,
+    potencia           = EXCLUDED.potencia,
+    aceleracion        = EXCLUDED.aceleracion,
+    velocidad_maxima   = EXCLUDED.velocidad_maxima,
+    peso               = EXCLUDED.peso,
+    consumo_medio      = EXCLUDED.consumo_medio,
+    traccion           = EXCLUDED.traccion,
+    transmision        = EXCLUDED.transmision,
+    numero_marchas     = EXCLUDED.numero_marchas,
+    capacidad_deposito = EXCLUDED.capacidad_deposito;
+"""
 
-            url=c.url.strip(),
-        )
-        coches_normalizados.append(version)
-    except Exception as e:
-        errores.append({"index": i, "nombre": c.nombre, "error": str(e)})
 
-print(f"✅ Normalizados: {len(coches_normalizados)}")
-print(f"❌ Errores:      {len(errores)}")
-if errores:
-    for err in errores[:5]:  # muestra solo los primeros 5
-        print(f"  - [{err['index']}] {err['nombre']}: {err['error']}")
+def guardar_en_bd(versiones: list[normalized.Version]) -> tuple[int, list[dict]]:
+    insertados = 0
+    fallos: list[dict] = []
+    with psycopg.connect(str(settings.DATABASE_URL)) as conn:
+        with conn.cursor() as cur:
+            for v in versiones:
+                try:
+                    cur.execute(INSERT_SQL, v.model_dump())
+                    insertados += 1
+                except Exception as e:
+                    fallos.append({"url": v.url, "error": str(e)})
+                    conn.rollback()
+            conn.commit()
+    return insertados, fallos
+
+
+def ingest_desde_archivo(ruta: str | Path) -> dict:
+    """Lee el JSON del scraper, normaliza y persiste en BD."""
+    with open(ruta, "r", encoding="utf-8") as f:
+        datos = json.load(f)
+
+    coches_scrap = [scraped.CocheScrap(**d) for d in datos]
+
+    normalizados: list[normalized.Version] = []
+    errores_norm: list[dict] = []
+    for i, c in enumerate(coches_scrap):
+        try:
+            normalizados.append(normalizar_coche(c))
+        except Exception as e:
+            errores_norm.append({"index": i, "nombre": c.nombre, "error": str(e)})
+
+    insertados, errores_bd = guardar_en_bd(normalizados)
+
+    return {
+        "leidos": len(coches_scrap),
+        "normalizados": len(normalizados),
+        "errores_normalizacion": errores_norm,
+        "guardados": insertados,
+        "errores_bd": errores_bd,
+    }
