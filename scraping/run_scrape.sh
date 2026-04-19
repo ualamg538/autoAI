@@ -9,7 +9,8 @@ cd /app
 scrapy crawl km77_spider -O "${OUTPUT}"
 
 echo "scraper: notifying backend at ${BACKEND}/ingest"
-curl -sS -X POST -H "Content-Type: application/json" \
+curl -sS --fail-with-body -X POST -H "Content-Type: application/json" \
     --data "{\"file\":\"${OUTPUT}\"}" \
     "${BACKEND}/ingest" \
-    || echo "scraper: ingest call failed (endpoint may not be implemented yet)"
+    && echo "" \
+    || echo "scraper: ingest call failed"
