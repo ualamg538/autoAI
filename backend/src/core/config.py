@@ -22,6 +22,9 @@ class Settings(BaseSettings):
 
     SCRAPER_CRON: str = Field(default="0 3 * * 0")
 
+    OPENAI_API_KEY: str | None = Field(default=None)
+    OPENAI_MODEL: str = Field(default="gpt-4o-mini")
+
 
 @lru_cache
 def get_settings() -> Settings:
