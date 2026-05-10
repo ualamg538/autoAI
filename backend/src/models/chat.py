@@ -1,0 +1,41 @@
+from typing import Annotated, Any, Literal, Union
+
+from pydantic import BaseModel, Field
+
+
+class TextBlock(BaseModel):
+    type: Literal["text"]
+    content: str
+
+
+class ChartBlock(BaseModel):
+    type: Literal["chart"]
+    variant: Literal["bar", "radar"]
+    title: str | None = None
+    data: list[dict[str, Any]]
+    keys: list[str] | None = None
+    x_key: str | None = None
+
+
+class TableBlock(BaseModel):
+    type: Literal["table"]
+    title: str | None = None
+    columns: list[str]
+    rows: list[dict[str, Any]]
+
+
+class ImageBlock(BaseModel):
+    type: Literal["image"]
+    car_id: int
+    caption: str | None = None
+    foto_url: str | None = None
+
+
+Block = Annotated[
+    Union[TextBlock, ChartBlock, TableBlock, ImageBlock],
+    Field(discriminator="type"),
+]
+
+
+class ChatResponse(BaseModel):
+    blocks: list[Block]

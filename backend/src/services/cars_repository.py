@@ -33,6 +33,7 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         ("potencia_min", "potencia", ">="),
         ("potencia_max", "potencia", "<="),
         ("plazas_min", "plazas", ">="),
+        ("consumo_max", "consumo_medio", "<="),
     )
     for clave, columna, op in rangos:
         valor = filtros.get(clave)
@@ -44,19 +45,35 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     return where_sql, params
 
 
+ORDENES_VALIDOS = {
+    "precio_asc": "precio ASC NULLS LAST",
+    "precio_desc": "precio DESC NULLS LAST",
+    "potencia_asc": "potencia ASC NULLS LAST",
+    "potencia_desc": "potencia DESC NULLS LAST",
+    "consumo_asc": "consumo_medio ASC NULLS LAST",
+    "consumo_desc": "consumo_medio DESC NULLS LAST",
+    "plazas_desc": "plazas DESC NULLS LAST",
+}
+
+
 def listar_coches(
     filtros: dict[str, Any],
     limite: int,
     offset: int,
+    orden: Optional[str] = None,
 ) -> list[Version]:
     where_sql, params = _construir_where(filtros)
     params["limit"] = limite
     params["offset"] = offset
 
+    order_sql = ORDENES_VALIDOS.get(orden) if orden else None
+    if order_sql is None:
+        order_sql = "marca, modelo, nombre"
+
     sql = (
         f"SELECT {COLUMNAS} FROM cars "
         f"WHERE {where_sql} "
-        f"ORDER BY marca, modelo, nombre "
+        f"ORDER BY {order_sql} "
         f"LIMIT %(limit)s OFFSET %(offset)s"
     )
 
@@ -93,6 +110,78 @@ def comparar_coches(ids: list[int]) -> list[Version]:
             cur.execute(sql, {"ids": ids})
             filas = cur.fetchall()
     return [Version(**fila) for fila in filas]
+
+
+METRICAS_AGREGAR = {"count", "avg", "min", "max"}
+CAMPOS_AGREGABLES = {
+    "precio",
+    "potencia",
+    "consumo_medio",
+    "aceleracion",
+    "velocidad_maxima",
+    "peso",
+    "plazas",
+    "capacidad_maletero",
+    "longitud",
+    "anchura",
+    "altura",
+    "capacidad_deposito",
+}
+AGRUPACIONES_VALIDAS = {
+    "marca",
+    "modelo",
+    "combustible",
+    "carroceria",
+    "traccion",
+    "transmision",
+}
+
+
+def agregar(
+    metrica: str,
+    campo: str,
+    agrupacion: Optional[str],
+    filtros: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if metrica not in METRICAS_AGREGAR:
+        raise ValueError(f"Métrica no válida: {metrica}")
+    if metrica != "count" and campo not in CAMPOS_AGREGABLES:
+        raise ValueError(f"Campo no válido para agregar: {campo}")
+    if agrupacion is not None and agrupacion not in AGRUPACIONES_VALIDAS:
+        raise ValueError(f"Agrupación no válida: {agrupacion}")
+
+    where_sql, params = _construir_where(filtros or {})
+
+    if metrica == "count":
+        select_metrica = "COUNT(*)::bigint"
+    else:
+        select_metrica = f"{metrica.upper()}({campo})::float"
+
+    if agrupacion:
+        sql = (
+            f"SELECT {agrupacion} AS grupo, {select_metrica} AS valor "
+            f"FROM cars WHERE {where_sql} "
+            f"GROUP BY {agrupacion} "
+            f"ORDER BY valor DESC NULLS LAST"
+        )
+    else:
+        sql = (
+            f"SELECT NULL::text AS grupo, {select_metrica} AS valor "
+            f"FROM cars WHERE {where_sql}"
+        )
+
+    with psycopg.connect(str(settings.DATABASE_URL), row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            filas = cur.fetchall()
+
+    return [
+        {
+            "grupo": fila["grupo"],
+            "valor": float(fila["valor"]) if fila["valor"] is not None else None,
+        }
+        for fila in filas
+    ]
 
 
 def valores_filtros_meta() -> dict[str, list[str]]:
