@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class Version(BaseModel):
+    id: Optional[int] = None
     marca : str
     modelo : str
     submodelo : str
