@@ -1,6 +1,7 @@
 from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
+from pydantic.json_schema import SkipJsonSchema
 
 
 class TextBlock(BaseModel):
@@ -28,7 +29,7 @@ class ImageBlock(BaseModel):
     type: Literal["image"]
     car_id: int
     caption: str | None = None
-    foto_url: str | None = None
+    foto_url: SkipJsonSchema[str | None] = None
 
 
 Block = Annotated[

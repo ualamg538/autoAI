@@ -400,6 +400,31 @@ input {
   border-radius: 6px;
 }
 
+/* Car images */
+.msg.ai .car-figure {
+  margin: 12px 0;
+  padding: 0;
+  background: var(--bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  max-width: 420px;
+}
+
+.msg.ai .car-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.msg.ai .car-figure figcaption {
+  font-size: 13px;
+  color: var(--text-soft);
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
 /* Input bar (conversation mode) */
 .chat-input-bar {
   padding: 12px 24px 20px;

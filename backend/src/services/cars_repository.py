@@ -53,6 +53,8 @@ ORDENES_VALIDOS = {
     "consumo_asc": "consumo_medio ASC NULLS LAST",
     "consumo_desc": "consumo_medio DESC NULLS LAST",
     "plazas_desc": "plazas DESC NULLS LAST",
+    "fecha_fin_desc": "fecha_fin DESC NULLS LAST",
+    "fecha_fin_asc": "fecha_fin ASC NULLS LAST",
 }
 
 

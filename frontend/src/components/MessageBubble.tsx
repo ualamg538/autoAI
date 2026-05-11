@@ -1,4 +1,3 @@
-import { Fragment, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -16,127 +15,62 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type {
+  Block,
+  ChartBlock,
+  ImageBlock,
+  TableBlock,
+  TextBlock,
+} from "../lib/api";
 
 type Role = "user" | "assistant";
 
-interface MessageBubbleProps {
-  role: Role;
+interface UserBubbleProps {
+  role: "user";
   content: string;
   isError?: boolean;
 }
 
-type ChartType = "bar" | "radar" | "table";
-
-interface ChartSpec {
-  type: ChartType;
-  title?: string;
-  data: Array<Record<string, unknown>>;
-  keys?: string[];
-  xKey?: string;
+interface AssistantBubbleProps {
+  role: "assistant";
+  blocks: Block[];
+  isError?: boolean;
 }
 
-interface TextSegment {
-  kind: "text";
-  value: string;
-}
-interface ChartSegment {
-  kind: "chart";
-  raw: string;
-}
-type Segment = TextSegment | ChartSegment;
+type MessageBubbleProps = UserBubbleProps | AssistantBubbleProps;
 
 const CHART_COLORS = ["#8ab6d6", "#9ac9a3", "#f2b880", "#c8a2d6", "#e0c36a"];
 
-function splitSegments(content: string): Segment[] {
-  const segments: Segment[] = [];
-  const regex = /```chart\s*\n([\s\S]*?)```/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({
-        kind: "text",
-        value: content.slice(lastIndex, match.index),
-      });
-    }
-    segments.push({ kind: "chart", raw: match[1] });
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < content.length) {
-    segments.push({ kind: "text", value: content.slice(lastIndex) });
-  }
-  if (segments.length === 0) {
-    segments.push({ kind: "text", value: content });
-  }
-  return segments;
+function TextBlockView({ block }: { block: TextBlock }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        table: ({ children }) => (
+          <div className="md-table-wrap">
+            <table className="md-table">{children}</table>
+          </div>
+        ),
+      }}
+    >
+      {block.content}
+    </ReactMarkdown>
+  );
 }
 
-function parseChart(raw: string): ChartSpec | null {
-  try {
-    const parsed = JSON.parse(raw) as ChartSpec;
-    if (
-      !parsed ||
-      (parsed.type !== "bar" &&
-        parsed.type !== "radar" &&
-        parsed.type !== "table") ||
-      !Array.isArray(parsed.data)
-    ) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function ChartRenderer({ spec }: { spec: ChartSpec }) {
+function ChartBlockView({ block }: { block: ChartBlock }) {
+  const firstRow = block.data[0];
   const xKey =
-    spec.xKey ??
-    (spec.data[0] ? Object.keys(spec.data[0])[0] : undefined) ??
-    "name";
+    block.x_key ?? (firstRow ? Object.keys(firstRow)[0] : undefined) ?? "name";
   const keys =
-    spec.keys ??
-    (spec.data[0]
-      ? Object.keys(spec.data[0]).filter((k) => k !== xKey)
-      : []);
+    block.keys ?? (firstRow ? Object.keys(firstRow).filter((k) => k !== xKey) : []);
 
-  if (spec.type === "table") {
-    const columns = spec.data[0] ? Object.keys(spec.data[0]) : [];
+  if (block.variant === "bar") {
     return (
       <div className="chart-block">
-        {spec.title ? <div className="chart-title">{spec.title}</div> : null}
-        <div className="md-table-wrap">
-          <table className="md-table">
-            <thead>
-              <tr>
-                {columns.map((c) => (
-                  <th key={c}>{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {spec.data.map((row, i) => (
-                <tr key={i}>
-                  {columns.map((c) => (
-                    <td key={c}>{String(row[c] ?? "")}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-
-  if (spec.type === "bar") {
-    return (
-      <div className="chart-block">
-        {spec.title ? <div className="chart-title">{spec.title}</div> : null}
+        {block.title ? <div className="chart-title">{block.title}</div> : null}
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={spec.data}>
+          <BarChart data={block.data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis dataKey={xKey} stroke="#6b6b6b" fontSize={12} />
             <YAxis stroke="#6b6b6b" fontSize={12} />
@@ -156,12 +90,11 @@ function ChartRenderer({ spec }: { spec: ChartSpec }) {
     );
   }
 
-  // radar
   return (
     <div className="chart-block">
-      {spec.title ? <div className="chart-title">{spec.title}</div> : null}
+      {block.title ? <div className="chart-title">{block.title}</div> : null}
       <ResponsiveContainer width="100%" height={300}>
-        <RadarChart data={spec.data}>
+        <RadarChart data={block.data}>
           <PolarGrid stroke="#e5e5e5" />
           <PolarAngleAxis dataKey={xKey} fontSize={12} />
           <PolarRadiusAxis fontSize={10} />
@@ -183,61 +116,84 @@ function ChartRenderer({ spec }: { spec: ChartSpec }) {
   );
 }
 
-function AssistantContent({ content }: { content: string }) {
-  const segments = useMemo(() => splitSegments(content), [content]);
+function TableBlockView({ block }: { block: TableBlock }) {
+  const columns =
+    block.columns.length > 0
+      ? block.columns
+      : block.rows[0]
+        ? Object.keys(block.rows[0])
+        : [];
+  return (
+    <div className="chart-block">
+      {block.title ? <div className="chart-title">{block.title}</div> : null}
+      <div className="md-table-wrap">
+        <table className="md-table">
+          <thead>
+            <tr>
+              {columns.map((c) => (
+                <th key={c}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, i) => (
+              <tr key={i}>
+                {columns.map((c) => (
+                  <td key={c}>{String(row[c] ?? "")}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
+function ImageBlockView({ block }: { block: ImageBlock }) {
+  if (!block.foto_url) return null;
+  return (
+    <figure className="car-figure">
+      <img src={block.foto_url} alt={block.caption ?? ""} loading="lazy" />
+      {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+    </figure>
+  );
+}
+
+function AssistantBlocks({ blocks }: { blocks: Block[] }) {
   return (
     <>
-      {segments.map((seg, idx) => {
-        if (seg.kind === "chart") {
-          const spec = parseChart(seg.raw);
-          if (!spec) {
-            return (
-              <div key={idx} className="chart-error">
-                No se pudo renderizar el gráfico (JSON inválido).
-              </div>
-            );
-          }
-          return <ChartRenderer key={idx} spec={spec} />;
+      {blocks.map((b, i) => {
+        switch (b.type) {
+          case "text":
+            return <TextBlockView key={i} block={b} />;
+          case "chart":
+            return <ChartBlockView key={i} block={b} />;
+          case "table":
+            return <TableBlockView key={i} block={b} />;
+          case "image":
+            return <ImageBlockView key={i} block={b} />;
+          default:
+            return null;
         }
-        if (!seg.value.trim()) {
-          return <Fragment key={idx} />;
-        }
-        return (
-          <ReactMarkdown
-            key={idx}
-            remarkPlugins={[remarkGfm]}
-            components={{
-              table: ({ children }) => (
-                <div className="md-table-wrap">
-                  <table className="md-table">{children}</table>
-                </div>
-              ),
-            }}
-          >
-            {seg.value}
-          </ReactMarkdown>
-        );
       })}
     </>
   );
 }
 
-export default function MessageBubble({
-  role,
-  content,
-  isError = false,
-}: MessageBubbleProps) {
+export default function MessageBubble(props: MessageBubbleProps) {
+  const role: Role = props.role;
+  const isError = props.isError ?? false;
   const classes = `msg ${role === "user" ? "user" : "ai"}${
     isError ? " error" : ""
   }`;
   return (
     <div className={classes}>
       <div className="msg-content">
-        {role === "user" ? (
-          content
+        {props.role === "user" ? (
+          props.content
         ) : (
-          <AssistantContent content={content} />
+          <AssistantBlocks blocks={props.blocks} />
         )}
       </div>
     </div>

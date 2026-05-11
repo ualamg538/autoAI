@@ -6,11 +6,26 @@ import {
   type KeyboardEvent,
 } from "react";
 import MessageBubble from "./MessageBubble";
-import { sendChat, type ChatMessage } from "../lib/api";
+import {
+  sendChat,
+  type Block,
+  type ChatMessage,
+  type ChatResponse,
+} from "../lib/api";
 
-interface UiMessage extends ChatMessage {
-  id: number;
-  isError?: boolean;
+type UiMessage =
+  | { id: number; role: "user"; content: string; isError?: boolean }
+  | { id: number; role: "assistant"; blocks: Block[]; isError?: boolean };
+
+function uiMessagesToHistory(uiMessages: UiMessage[]): ChatMessage[] {
+  return uiMessages.map((m) =>
+    m.role === "user"
+      ? { role: "user", content: m.content }
+      : {
+          role: "assistant",
+          content: JSON.stringify({ blocks: m.blocks } satisfies ChatResponse),
+        },
+  );
 }
 
 export default function ChatAssistant() {
@@ -39,17 +54,14 @@ export default function ChatAssistant() {
     setLoading(true);
 
     try {
-      const history: ChatMessage[] = nextMessages.map(({ role, content }) => ({
-        role,
-        content,
-      }));
+      const history = uiMessagesToHistory(nextMessages);
       const reply = await sendChat(history);
       setMessages((prev) => [
         ...prev,
         {
           id: nextIdRef.current++,
           role: "assistant",
-          content: reply,
+          blocks: reply.blocks,
         },
       ]);
     } catch {
@@ -58,7 +70,12 @@ export default function ChatAssistant() {
         {
           id: nextIdRef.current++,
           role: "assistant",
-          content: "Error al conectar con el asistente. Inténtalo de nuevo.",
+          blocks: [
+            {
+              type: "text",
+              content: "Error al conectar con el asistente. Inténtalo de nuevo.",
+            },
+          ],
           isError: true,
         },
       ]);
@@ -113,14 +130,23 @@ export default function ChatAssistant() {
     <div className="chat-conversation">
       <div className="chat-stream">
         <div className="chat-stream-inner">
-          {messages.map((m) => (
-            <MessageBubble
-              key={m.id}
-              role={m.role}
-              content={m.content}
-              isError={m.isError}
-            />
-          ))}
+          {messages.map((m) =>
+            m.role === "user" ? (
+              <MessageBubble
+                key={m.id}
+                role="user"
+                content={m.content}
+                isError={m.isError}
+              />
+            ) : (
+              <MessageBubble
+                key={m.id}
+                role="assistant"
+                blocks={m.blocks}
+                isError={m.isError}
+              />
+            ),
+          )}
           {loading ? (
             <div className="msg ai">
               <div className="msg-content">
