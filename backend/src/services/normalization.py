@@ -80,6 +80,191 @@ def normalizar_submodelo(valor: str) -> str:
     return re.sub(r"[\n|]+", " ", valor).strip().lower()
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  COMBUSTIBLE  (Bug 1)
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# km77 rellena `combustible` SOLO con la fuente del motor de combustión
+# (Gasolina / Gasóleo / "Gasolina o GLP" / "Gasolina o gas natural" /
+# "Gasolina o etanol") y lo deja VACÍO para los 100% eléctricos. La
+# electrificación (MHEV/HEV/PHEV) va implícita en `nombre`/`submodelo`.
+#
+# `normalizar_combustible()` devuelve UN valor del vocabulario canónico
+# (ver docstring de models.normalized.Version):
+#   gasolina | gasoleo | gas | electrico |
+#   mhev_gasolina | mhev_gasoleo | hev_gasolina |
+#   phev_gasolina | phev_gasoleo
+#
+# Es IDEMPOTENTE: acepta tanto los valores crudos de km77 como un valor ya
+# canónico (recupera la base fósil del prefijo) y siempre re-deriva la
+# electrificación desde `nombre`/`submodelo`, que nunca cambian. Ejecutarlo
+# dos veces da el mismo resultado.
+
+# Orden de especificidad: PHEV (enchufable) > HEV (full) > MHEV (mild).
+_RX_PHEV = re.compile(
+    r"h[ií]brido\s+enchufable|enchufable|plug.?in|\bphev\b|\brecharge\b|"
+    r"\d{3}\s?e\b|\d{3}\s?de\b|tfsi\s?e\b|\be-?hybrid\b|\bh\+|\d{2,3}h\+",
+    re.IGNORECASE,
+)
+_RX_HEV = re.compile(
+    r"h[ií]brido|\bhev\b|e[:\-]hev|\bhybrid\b|full.?hybrid|\d{2,3}h\b|"
+    r"\bprius\b|\bhsd\b",  # Prius / Hybrid Synergy Drive: Toyota full hybrid
+    re.IGNORECASE,
+)
+_RX_MHEV = re.compile(
+    r"\bmhev\b|mild|micro\s*h[ií]brido|48\s?v\b|\betsi\b|e-?tech\s+mild",
+    re.IGNORECASE,
+)
+
+# Mapeo manual opcional por (marca, modelo) para casos irresolubles por regex.
+# De momento vacío: km77 ya escribe "Híbrido"/"Híbrido enchufable"/"full
+# hybrid" en `nombre`, así que la detección genérica cubre Renault E-Tech y
+# similares. Se deja como punto de extensión documentado.
+_OVERRIDES_COMBUSTIBLE: dict[tuple[str, str], str] = {}
+
+
+def _base_fosil(combustible: str) -> str:
+    """Reduce un valor de combustible (crudo km77 O ya canónico) a su base:
+    'gasolina' | 'gasoleo' | 'gas' | 'electrico'. Clave de la idempotencia."""
+    c = (combustible or "").strip().lower()
+    if not c or c in ("electrico", "eléctrico", "electric"):
+        return "electrico"
+    # Idempotencia: si ya es canónico, quita el prefijo de electrificación.
+    for prefijo in ("phev_", "hev_", "mhev_"):
+        if c.startswith(prefijo):
+            c = c[len(prefijo):]
+            break
+    if "glp" in c or "gas natural" in c or "etanol" in c or c == "gas":
+        return "gas"
+    if c in ("gasoleo", "gasóleo", "diesel", "diésel"):
+        return "gasoleo"
+    if c == "gasolina":
+        return "gasolina"
+    # Por defecto, la fuente fósil más común.
+    return "gasolina"
+
+
+def normalizar_combustible(
+    combustible_km77: str, nombre: str, submodelo: str
+) -> str:
+    """Combina fuente fósil (de `combustible_km77`) con el nivel de
+    electrificación (derivado de `nombre`/`submodelo`) en un valor canónico."""
+    base = _base_fosil(combustible_km77)
+
+    # 1) BEV primero: si km77 no declara motor de combustión es 100% eléctrico.
+    #    Esto evita falsos positivos tipo Fiat 500e / Lexus RZ 450e (BEV con
+    #    sufijo "e"/"NNNe") que colisionarían con BMW 330e (PHEV gasolina).
+    if base == "electrico":
+        return "electrico"
+
+    texto = f"{nombre or ''} {submodelo or ''}".lower()
+
+    # base fósil para los combos electrificados (el vocabulario solo define
+    # variantes gasolina/gasoleo; el flex 'gas' se trata como gasolina).
+    base_e = "gasoleo" if base == "gasoleo" else "gasolina"
+
+    es_mild = bool(_RX_MHEV.search(texto))
+
+    # 2) PHEV (lo más específico).
+    if _RX_PHEV.search(texto):
+        return f"phev_{base_e}"
+    # 3) HEV (full hybrid). "mild hybrid" contiene "hybrid": se excluye con
+    #    es_mild para que caiga en MHEV (paso 4), no aquí.
+    if _RX_HEV.search(texto) and not es_mild:
+        return "hev_gasolina"  # los full hybrid son de base gasolina
+    # 4) MHEV (mild / 48V / eTSI).
+    if es_mild:
+        return f"mhev_{base_e}"
+    # 5) Sin electrificar: fuente fósil cruda.
+    return base
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  CARROCERÍA  (Bug 2)
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# km77 usa términos propios (Turismo, SUV/Todoterreno, Turismo familiar,
+# Monovolumen, Descapotable, Coupé, Pick Up, Vehículo comercial…). El modelo
+# busca por valores canónicos. `normalizar_carroceria()` traduce km77 →
+# canónico y es idempotente (un valor ya canónico se devuelve igual).
+#
+# Vocabulario canónico:
+#   berlina | suv | compacto | familiar | coupe | cabrio |
+#   monovolumen | pickup | furgoneta
+#
+# Nota: km77 usa "Turismo" de forma genérica y NO distingue sedán de
+# hatchback, por lo que 'compacto' queda en el vocabulario (sinónimo
+# hatchback) pero sin datos derivables: todo "Turismo" → 'berlina'.
+
+_CARROCERIAS_CANON = {
+    "berlina",
+    "suv",
+    "compacto",
+    "familiar",
+    "coupe",
+    "cabrio",
+    "monovolumen",
+    "pickup",
+    "furgoneta",
+}
+
+# Coincidencia exacta km77 → canónico (tras strip().lower()).
+_MAPA_CARROCERIA_EXACTO = {
+    "turismo": "berlina",
+    "turismo familiar": "familiar",
+    "suv/todoterreno": "suv",
+    "monovolumen": "monovolumen",
+    "descapotable": "cabrio",
+    "coupé": "coupe",
+    "coupe": "coupe",
+    "pick up": "pickup",
+    "vehículo comercial": "furgoneta",
+    "comercial medio": "furgoneta",
+    "comercial grande": "furgoneta",
+}
+
+# Reglas por subcadena (incluye sinónimos comunes: MPV, ranchera, hatchback…).
+_REGLAS_CARROCERIA = (
+    ("suv", "suv"),
+    ("todoterreno", "suv"),
+    ("4x4", "suv"),
+    ("crossover", "suv"),
+    ("familiar", "familiar"),
+    ("ranchera", "familiar"),
+    ("station", "familiar"),
+    ("monovolumen", "monovolumen"),
+    ("mpv", "monovolumen"),
+    ("descapotable", "cabrio"),
+    ("cabrio", "cabrio"),
+    ("convertible", "cabrio"),
+    ("roadster", "cabrio"),
+    ("coup", "coupe"),
+    ("pick", "pickup"),
+    ("comercial", "furgoneta"),
+    ("furgon", "furgoneta"),
+    ("hatchback", "compacto"),
+    ("compacto", "compacto"),
+    ("utilitario", "compacto"),
+    ("berlina", "berlina"),
+    ("turismo", "berlina"),
+)
+
+
+def normalizar_carroceria(carroceria_km77: str) -> str:
+    c = (carroceria_km77 or "").strip().lower()
+    if not c:
+        return ""
+    if c in _CARROCERIAS_CANON:  # idempotente
+        return c
+    if c in _MAPA_CARROCERIA_EXACTO:
+        return _MAPA_CARROCERIA_EXACTO[c]
+    # Valores compuestos ("comercial medio, vehículo comercial") y sinónimos.
+    for aguja, canon in _REGLAS_CARROCERIA:
+        if aguja in c:
+            return canon
+    return c  # desconocido: se conserva en crudo para que la verificación lo vea
+
+
 def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
     fecha_inicio, fecha_fin = parse_fechas(c.fechas)
     return normalized.Version(
@@ -94,7 +279,7 @@ def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
         anchura=parse_dimension_mm(c.anchura),
         altura=parse_dimension_mm(c.altura),
         capacidad_maletero=float(c.capacidad_maletero) if c.capacidad_maletero else None,
-        carroceria=c.carroceria.strip().lower(),
+        carroceria=normalizar_carroceria(c.carroceria),
         puertas=parse_opcional(c.puertas, int),
 
         precio=parse_opcional(
@@ -103,7 +288,7 @@ def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
 
-        combustible="electrico" if not c.combustible.strip() else c.combustible.strip().lower(),
+        combustible=normalizar_combustible(c.combustible, c.nombre, c.submodelo),
         potencia=parse_potencia(c.potencia),
         aceleracion=parse_opcional(
             c.aceleracion.replace(" s", "").replace(",", "."), float
