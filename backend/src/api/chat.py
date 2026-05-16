@@ -32,18 +32,25 @@ capacidad_deposito (l)
 
 VALORES VÁLIDOS DE LOS CAMPOS ENUMERABLES (usa EXACTAMENTE estos strings en los \
 filtros; NO inventes otros valores):
-- combustible: "gasolina", "gasoleo", "gas" (bi-fuel GLP/gas natural/etanol), \
-"electrico" (100% eléctrico), "mhev_gasolina", "mhev_gasoleo" (microhíbrido / \
-mild hybrid 48V), "hev_gasolina" (híbrido autorrecargable / full hybrid), \
-"phev_gasolina", "phev_gasoleo" (híbrido enchufable). NO existe el valor \
-"hibrido" ni "diesel": traduce "híbrido"→"hev_gasolina", "híbrido \
-enchufable"/"PHEV"→"phev_gasolina", "diésel/gasoil"→"gasoleo", \
-"GLP/autogás"→"gas". Para "cualquier híbrido" o "electrificado" busca por \
-separado los valores hev_*/phev_*/mhev_* (no hay un único valor que los una).
-- carroceria: "berlina", "suv", "familiar", "monovolumen", "cabrio", \
-"furgoneta", "coupe", "pickup". NO existe "compacto" en los datos (km77 no \
-distingue sedán de hatchback): para coche pequeño/urbano usa "berlina" + \
-filtros de tamaño (longitud) o precio.
+- combustible (es una LISTA: pasa un array, OR entre los valores): \
+"gasolina", "gasoleo", "gas" (bi-fuel GLP/gas natural/etanol), "electrico" \
+(100% eléctrico), "mhev_gasolina", "mhev_gasoleo" (microhíbrido / mild \
+hybrid 48V), "hev_gasolina" (híbrido autorrecargable / full hybrid), \
+"phev_gasolina", "phev_gasoleo" (híbrido enchufable). NO existe "hibrido" ni \
+"diesel": "diésel/gasoil"→["gasoleo"], "GLP/autogás"→["gas"]. CLAVE: para \
+"híbrido" o "cualquier híbrido" pasa en UNA sola llamada la lista COMPLETA \
+["hev_gasolina","phev_gasolina","mhev_gasolina","mhev_gasoleo",\
+"phev_gasoleo"]; "híbrido enchufable/PHEV"→["phev_gasolina","phev_gasoleo"]; \
+"híbrido autorrecargable/full hybrid"→["hev_gasolina"]; "microhíbrido/mild \
+48V"→["mhev_gasolina","mhev_gasoleo"]; "electrificado/sin humos" añade \
+"electrico". NUNCA hagas varias búsquedas separadas para esto: una sola \
+llamada con la lista. Un solo tipo = lista de un elemento, p. ej. \
+"diésel"→["gasoleo"].
+- carroceria (también es una LISTA: array, OR entre valores): "berlina", \
+"suv", "familiar", "monovolumen", "cabrio", "furgoneta", "coupe", "pickup". \
+NO existe "compacto" en los datos (km77 no distingue sedán de hatchback): \
+para coche pequeño/urbano usa ["berlina"] + filtros de tamaño (longitud) o \
+precio. Un solo tipo = lista de un elemento, p. ej. ["suv"].
 - traccion: "delantera", "trasera", "total" ("total" = 4x4/AWD).
 - transmision: "manual", "automático".
 
@@ -123,13 +130,18 @@ Ejemplos de traducción:
 - "Yaris vs Civic" → `buscar_coches(filtros={"marca":"toyota","modelo":"yaris"}, \
 limite=1)` + `buscar_coches(filtros={"marca":"honda","modelo":"civic"}, limite=1)` \
 + `comparar(ids=[<id_yaris>, <id_civic>])`.
-- "el SUV más reciente" → `buscar_coches(filtros={"carroceria":"suv"}, \
+- "el SUV más reciente" → `buscar_coches(filtros={"carroceria":["suv"]}, \
 orden="fecha_fin_desc")`.
 - "los híbridos más populares" → `buscar_coches(filtros={"combustible":\
-"hev_gasolina"}, orden="precio_asc")` (NO uses "hibrido", no existe).
+["hev_gasolina","phev_gasolina","mhev_gasolina","mhev_gasoleo",\
+"phev_gasoleo"]}, orden="precio_asc")` (NO uses "hibrido", no existe; pasa \
+la lista COMPLETA en UNA sola llamada, no busques subtipos por separado).
 
 TRADUCCIÓN DE INTENCIONES VAGAS A FILTROS (expresión coloquial → filtros \
-concretos sobre campos REALES; nunca inventes campos):
+concretos sobre campos REALES; nunca inventes campos). NOTA: cuando abajo \
+veas `carroceria` ∈ {...} o `combustible` ∈ {...}, pásalo TAL CUAL como \
+array en el filtro (p. ej. `"carroceria":["suv","monovolumen","familiar"]`), \
+NO hagas búsquedas separadas:
 - "para la familia" / "familiar" / "viajar con niños" → `carroceria` ∈ \
 {"suv","monovolumen","familiar"} + `plazas_min`:5 (o 7 si "familia numerosa") \
 + maletero grande (orden no aplica; valora capacidad_maletero al recomendar).

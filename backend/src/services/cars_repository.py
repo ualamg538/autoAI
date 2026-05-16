@@ -23,9 +23,21 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     igualdades_lower = ("marca", "modelo", "combustible", "carroceria", "traccion", "transmision")
     for campo in igualdades_lower:
         valor = filtros.get(campo)
-        if valor:
+        if valor is None or valor == "" or valor == []:
+            continue
+        if isinstance(valor, (list, tuple, set)):
+            valores = [str(v).strip().lower() for v in valor if str(v).strip()]
+            if not valores:
+                continue
+            if len(valores) == 1:
+                condiciones.append(f"{campo} = %({campo})s")
+                params[campo] = valores[0]
+            else:
+                condiciones.append(f"{campo} = ANY(%({campo})s)")
+                params[campo] = valores
+        else:
             condiciones.append(f"{campo} = %({campo})s")
-            params[campo] = valor.strip().lower()
+            params[campo] = str(valor).strip().lower()
 
     rangos = (
         ("precio_min", "precio", ">="),

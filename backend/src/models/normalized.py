@@ -13,11 +13,14 @@ class Version(BaseModel):
     nombre: str
     foto_url: str
     # Todo lo que varía entre versiones
-    plazas: int
+    # Opcionales: km77 deja '-' / 'Múltiples' / vacío en estos campos para
+    # pickups (sin maletero) y para híbridos/EV con e-CVT (sin marchas
+    # discretas). La columna en BD ya admite NULL.
+    plazas: Optional[int]
     longitud: Optional[float]
     anchura: Optional[float]
     altura: Optional[float]
-    capacidad_maletero: float
+    capacidad_maletero: Optional[float]
     carroceria: str
     puertas: Optional[int]
     
@@ -46,7 +49,7 @@ class Version(BaseModel):
     consumo_medio: Optional[float]
     traccion: str
     transmision: str
-    numero_marchas: int
+    numero_marchas: Optional[int]  # None si km77 da 'Múltiples'/'No disponible'
     capacidad_deposito: Optional[float]
     
     url: str

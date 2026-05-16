@@ -274,11 +274,12 @@ def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
         nombre=c.nombre.strip().lower(),
         foto_url=c.foto_url.strip(),
 
-        plazas=int(c.plazas),
+        plazas=parse_opcional(c.plazas, int),
         longitud=parse_dimension_mm(c.longitud),
         anchura=parse_dimension_mm(c.anchura),
         altura=parse_dimension_mm(c.altura),
-        capacidad_maletero=float(c.capacidad_maletero) if c.capacidad_maletero else None,
+        # km77 usa '-' cuando no hay maletero (p. ej. pickups): None, no crash.
+        capacidad_maletero=parse_opcional(c.capacidad_maletero, float),
         carroceria=normalizar_carroceria(c.carroceria),
         puertas=parse_opcional(c.puertas, int),
 
@@ -302,7 +303,8 @@ def normalizar_coche(c: scraped.CocheScrap) -> normalized.Version:
         consumo_medio=parse_consumo(c.consumo_medio),
         traccion=c.traccion.strip().lower(),
         transmision=c.caja_cambios.strip().lower(),
-        numero_marchas=int(c.numero_marchas) if c.numero_marchas.strip() else 0,
+        # 'Múltiples' (e-CVT de híbridos/EV) / 'No disponible' / '' -> None.
+        numero_marchas=parse_opcional(c.numero_marchas, int),
         capacidad_deposito=parse_capacidad_deposito(c.capacidad_deposito),
 
         url=c.url.strip(),

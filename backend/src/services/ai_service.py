@@ -46,43 +46,56 @@ _FILTROS_SCHEMA: dict[str, Any] = {
         "marca": {"type": "string"},
         "modelo": {"type": "string"},
         "combustible": {
-            "type": "string",
-            "enum": [
-                "gasolina",
-                "gasoleo",
-                "gas",
-                "electrico",
-                "mhev_gasolina",
-                "mhev_gasoleo",
-                "hev_gasolina",
-                "phev_gasolina",
-                "phev_gasoleo",
-            ],
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "gasolina",
+                    "gasoleo",
+                    "gas",
+                    "electrico",
+                    "mhev_gasolina",
+                    "mhev_gasoleo",
+                    "hev_gasolina",
+                    "phev_gasolina",
+                    "phev_gasoleo",
+                ],
+            },
             "description": (
-                "Fuente fósil + electrificación. NO existe 'hibrido' ni "
-                "'diesel': 'híbrido'→hev_gasolina, 'híbrido enchufable/PHEV'"
-                "→phev_gasolina, 'diésel'→gasoleo, 'GLP/GNC'→gas, "
-                "'microhíbrido/mild 48V'→mhev_gasolina. Para 'cualquier "
-                "híbrido' busca por separado hev_*/phev_*/mhev_*."
+                "Lista de tipos aceptados (OR entre ellos). Fuente fósil + "
+                "electrificación. NO existe 'hibrido' ni 'diesel'. Mapea: "
+                "'diésel/gasoil'→['gasoleo'], 'GLP/GNC/autogás'→['gas']. "
+                "Para 'cualquier híbrido' pasa TODOS: ['hev_gasolina',"
+                "'phev_gasolina','mhev_gasolina','mhev_gasoleo',"
+                "'phev_gasoleo']. 'híbrido enchufable/PHEV'→['phev_gasolina',"
+                "'phev_gasoleo']; 'híbrido autorrecargable/full hybrid'→"
+                "['hev_gasolina']; 'microhíbrido/mild 48V'→['mhev_gasolina',"
+                "'mhev_gasoleo']; 'electrificado/sin humos' añade 'electrico'."
+                " Un solo tipo = lista de un elemento."
             ),
         },
         "carroceria": {
-            "type": "string",
-            "enum": [
-                "berlina",
-                "suv",
-                "familiar",
-                "monovolumen",
-                "cabrio",
-                "furgoneta",
-                "coupe",
-                "pickup",
-            ],
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "berlina",
+                    "suv",
+                    "familiar",
+                    "monovolumen",
+                    "cabrio",
+                    "furgoneta",
+                    "coupe",
+                    "pickup",
+                ],
+            },
             "description": (
-                "No existe 'compacto' (km77 no separa sedán/hatchback): usa "
-                "'berlina'. 'todoterreno/4x4/crossover'→suv, "
-                "'descapotable'→cabrio, 'ranchera'→familiar, "
-                "'MPV'→monovolumen, 'comercial/furgón'→furgoneta."
+                "Lista de carrocerías aceptadas (OR entre ellas). No existe "
+                "'compacto' (km77 no separa sedán/hatchback): usa "
+                "['berlina']. 'todoterreno/4x4/crossover'→['suv'], "
+                "'descapotable'→['cabrio'], 'ranchera'→['familiar'], "
+                "'MPV'→['monovolumen'], 'comercial/furgón'→['furgoneta']. "
+                "Un solo tipo = lista de un elemento."
             ),
         },
         "traccion": {
@@ -205,9 +218,27 @@ def _coche_a_dict(coche: Version) -> dict[str, Any]:
     return coche.model_dump(mode="json")
 
 
+_FILTRO_KEYS: frozenset[str] = frozenset(_FILTROS_SCHEMA["properties"].keys())
+
+
+def _extraer_filtros(args: dict[str, Any]) -> dict[str, Any]:
+    """Devuelve los filtros tolerando que el modelo aplane los argumentos.
+
+    gpt-4o-mini a veces manda `{"combustible": [...]}` en vez de
+    `{"filtros": {"combustible": [...]}}`. Reconstruimos `filtros` a partir
+    de las claves reconocidas del esquema de filtros si no viene anidado.
+    """
+    filtros = args.get("filtros")
+    filtros = dict(filtros) if isinstance(filtros, dict) else {}
+    for clave, valor in args.items():
+        if clave in _FILTRO_KEYS and clave not in filtros:
+            filtros[clave] = valor
+    return filtros
+
+
 def ejecutar_tool(nombre: str, args: dict[str, Any]) -> Any:
     if nombre == "buscar_coches":
-        filtros = args.get("filtros") or {}
+        filtros = _extraer_filtros(args)
         orden = args.get("orden")
         limite = int(args.get("limite") or 10)
         coches = cars_repository.listar_coches(
@@ -231,7 +262,7 @@ def ejecutar_tool(nombre: str, args: dict[str, Any]) -> Any:
             metrica=args["metrica"],
             campo=args.get("campo", ""),
             agrupacion=args.get("agrupacion"),
-            filtros=args.get("filtros") or {},
+            filtros=_extraer_filtros(args),
         )
 
     raise ValueError(f"Tool desconocido: {nombre}")
