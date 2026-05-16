@@ -70,7 +70,7 @@ def listar_coches(
 
     order_sql = ORDENES_VALIDOS.get(orden) if orden else None
     if order_sql is None:
-        order_sql = "marca, modelo, nombre"
+        order_sql = "RANDOM()"
 
     sql = (
         f"SELECT {COLUMNAS} FROM cars "
