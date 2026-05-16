@@ -47,14 +47,54 @@ _FILTROS_SCHEMA: dict[str, Any] = {
         "modelo": {"type": "string"},
         "combustible": {
             "type": "string",
-            "description": "ej: gasolina, diesel, hibrido, hibrido enchufable, electrico, glp",
+            "enum": [
+                "gasolina",
+                "gasoleo",
+                "gas",
+                "electrico",
+                "mhev_gasolina",
+                "mhev_gasoleo",
+                "hev_gasolina",
+                "phev_gasolina",
+                "phev_gasoleo",
+            ],
+            "description": (
+                "Fuente fósil + electrificación. NO existe 'hibrido' ni "
+                "'diesel': 'híbrido'→hev_gasolina, 'híbrido enchufable/PHEV'"
+                "→phev_gasolina, 'diésel'→gasoleo, 'GLP/GNC'→gas, "
+                "'microhíbrido/mild 48V'→mhev_gasolina. Para 'cualquier "
+                "híbrido' busca por separado hev_*/phev_*/mhev_*."
+            ),
         },
         "carroceria": {
             "type": "string",
-            "description": "ej: suv, berlina, familiar, monovolumen, coupe, cabrio",
+            "enum": [
+                "berlina",
+                "suv",
+                "familiar",
+                "monovolumen",
+                "cabrio",
+                "furgoneta",
+                "coupe",
+                "pickup",
+            ],
+            "description": (
+                "No existe 'compacto' (km77 no separa sedán/hatchback): usa "
+                "'berlina'. 'todoterreno/4x4/crossover'→suv, "
+                "'descapotable'→cabrio, 'ranchera'→familiar, "
+                "'MPV'→monovolumen, 'comercial/furgón'→furgoneta."
+            ),
         },
-        "traccion": {"type": "string", "description": "ej: delantera, trasera, total"},
-        "transmision": {"type": "string", "description": "ej: manual, automatico"},
+        "traccion": {
+            "type": "string",
+            "enum": ["delantera", "trasera", "total"],
+            "description": "'total' = 4x4/AWD",
+        },
+        "transmision": {
+            "type": "string",
+            "enum": ["manual", "automático"],
+            "description": "ej: manual, automático",
+        },
         "precio_min": {"type": "number", "description": "EUR"},
         "precio_max": {"type": "number", "description": "EUR"},
         "potencia_min": {"type": "number", "description": "CV"},
