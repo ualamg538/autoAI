@@ -113,7 +113,18 @@ _FILTROS_SCHEMA: dict[str, Any] = {
         "potencia_min": {"type": "number", "description": "CV"},
         "potencia_max": {"type": "number", "description": "CV"},
         "plazas_min": {"type": "integer"},
+        "plazas_max": {"type": "integer"},
         "consumo_max": {"type": "number", "description": "l/100 km"},
+        "longitud_min": {"type": "number", "description": "mm"},
+        "longitud_max": {"type": "number", "description": "mm"},
+        "aceleracion_max": {"type": "number", "description": "s 0-100"},
+        "solo_vigentes": {
+            "type": "boolean",
+            "description": (
+                "true = solo versiones aún a la venta (fecha_fin NULL). "
+                "Para 'coches nuevos/actuales/vigentes/de ahora/lo último'."
+            ),
+        },
     },
     "additionalProperties": False,
 }

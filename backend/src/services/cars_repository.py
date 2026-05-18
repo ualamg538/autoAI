@@ -46,7 +46,15 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         ("potencia_max", "potencia", "<="),
         ("plazas_min", "plazas", ">="),
         ("consumo_max", "consumo_medio", "<="),
+        ("longitud_min", "longitud", ">="),
+        ("longitud_max", "longitud", "<="),
+        ("plazas_max", "plazas", "<="),
+        ("aceleracion_max", "aceleracion", "<="),
     )
+
+    if filtros.get("solo_vigentes") is True:
+        condiciones.append("fecha_fin IS NULL")
+    
     for clave, columna, op in rangos:
         valor = filtros.get(clave)
         if valor is not None:
@@ -67,6 +75,9 @@ ORDENES_VALIDOS = {
     "plazas_desc": "plazas DESC NULLS LAST",
     "fecha_fin_desc": "fecha_fin DESC NULLS LAST",
     "fecha_fin_asc": "fecha_fin ASC NULLS LAST",
+    "fecha_inicio_asc": "fecha_inicio ASC NULLS LAST",
+    "fecha_inicio_desc": "fecha_inicio DESC NULLS LAST",
+    "vigencia_desc": "fecha_fin IS NULL DESC, fecha_inicio DESC NULLS LAST",
 }
 
 
