@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SCRAPER_CRON: str = Field(default="0 3 * * 0")
 
     OPENAI_API_KEY: str | None = Field(default=None)
-    OPENAI_MODEL: str = Field(default="gpt-4o-mini")
+    OPENAI_MODEL: str = Field(default="gpt-5.4-mini-2026-03-17")
 
 
 @lru_cache
