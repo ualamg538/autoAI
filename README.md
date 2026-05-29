@@ -84,7 +84,7 @@ El sistema nunca improvisa. La IA actúa únicamente como traductora e intérpre
   ──────────────────────────────────────────────────────────────
   "Quiero un SUV familiar que no consuma mucho, máximo 30.000€"
                             │
-                     GPT-4o-mini
+                     gpt-5.4-mini
                             │
           { "carroceria": "suv", "precio_max": 30000,
             "consumo_medio_max": 6.5, "plazas_min": 5 }
@@ -95,7 +95,7 @@ El sistema nunca improvisa. La IA actúa únicamente como traductora e intérpre
 
   PASO 3 — Explicación basada en datos reales
   ──────────────────────────────────────────────────────────────
-  Resultados + consulta original → GPT-4o-mini → respuesta
+  Resultados + consulta original → gpt-5.4-mini → respuesta
   "He encontrado 8 SUVs. El más equilibrado es el Skoda Kodiaq
    1.5 TSI porque combina bajo consumo (6.2 l/100km) con..."
 ```
@@ -151,7 +151,7 @@ El sistema nunca improvisa. La IA actúa únicamente como traductora e intérpre
 <td><strong>IA</strong></td>
 <td>
 
-![OpenAI](https://img.shields.io/badge/GPT--4o--mini-412991?style=flat-square&logo=openai&logoColor=white)
+![OpenAI](https://img.shields.io/badge/gpt--5.4--mini-8A2BE2)
 
 </td>
 <td>Traducción de lenguaje natural a filtros estructurados y generación de explicaciones.</td>
@@ -261,7 +261,7 @@ POSTGRES_HOST=db
 POSTGRES_PORT=5432
 
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-mini
 
 BACKEND_PORT=8000
 DEBUG=true

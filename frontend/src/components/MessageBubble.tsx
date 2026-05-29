@@ -22,6 +22,7 @@ import type {
   TableBlock,
   TextBlock,
 } from "../lib/api";
+import { toggleFavorite, useFavorites } from "../lib/storage";
 
 type Role = "user" | "assistant";
 
@@ -151,9 +152,21 @@ function TableBlockView({ block }: { block: TableBlock }) {
 }
 
 function ImageBlockView({ block }: { block: ImageBlock }) {
+  const favorites = useFavorites();
   if (!block.foto_url) return null;
+  const fav = favorites.includes(block.car_id);
   return (
     <figure className="car-figure">
+      <button
+        type="button"
+        className={`fav-btn${fav ? " active" : ""}`}
+        aria-pressed={fav}
+        aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
+        title={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
+        onClick={() => toggleFavorite(block.car_id)}
+      >
+        {fav ? "❤️" : "🤍"}
+      </button>
       <img src={block.foto_url} alt={block.caption ?? ""} loading="lazy" />
       {block.caption ? <figcaption>{block.caption}</figcaption> : null}
     </figure>

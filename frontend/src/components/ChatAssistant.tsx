@@ -8,14 +8,15 @@ import {
 import MessageBubble from "./MessageBubble";
 import {
   sendChat,
-  type Block,
   type ChatMessage,
   type ChatResponse,
 } from "../lib/api";
-
-type UiMessage =
-  | { id: number; role: "user"; content: string; isError?: boolean }
-  | { id: number; role: "assistant"; blocks: Block[]; isError?: boolean };
+import {
+  getSession,
+  saveSession,
+  setCurrentSessionId,
+  type UiMessage,
+} from "../lib/storage";
 
 function uiMessagesToHistory(uiMessages: UiMessage[]): ChatMessage[] {
   return uiMessages.map((m) =>
@@ -28,16 +29,37 @@ function uiMessagesToHistory(uiMessages: UiMessage[]): ChatMessage[] {
   );
 }
 
-export default function ChatAssistant() {
-  const [messages, setMessages] = useState<UiMessage[]>([]);
+interface ChatAssistantProps {
+  /** Sesión activa. El componente se remonta (key) al cambiar. */
+  sessionId: string;
+  /** Inicia una conversación nueva (App genera otra sesión). */
+  onNewSession: () => void;
+}
+
+export default function ChatAssistant({
+  sessionId,
+  onNewSession,
+}: ChatAssistantProps) {
+  const [messages, setMessages] = useState<UiMessage[]>(
+    () => getSession(sessionId)?.messages ?? [],
+  );
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const streamEndRef = useRef<HTMLDivElement | null>(null);
-  const nextIdRef = useRef(1);
+  const nextIdRef = useRef(
+    messages.reduce((max, m) => Math.max(max, m.id), 0) + 1,
+  );
 
   useEffect(() => {
     streamEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Persiste la conversación y la marca como la sesión activa.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    saveSession(sessionId, messages);
+    setCurrentSessionId(sessionId);
+  }, [sessionId, messages]);
 
   async function submit(text: string) {
     const trimmed = text.trim();
@@ -128,6 +150,16 @@ export default function ChatAssistant() {
 
   return (
     <div className="chat-conversation">
+      <div className="chat-toolbar">
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={onNewSession}
+          disabled={loading}
+        >
+          ＋ Nueva conversación
+        </button>
+      </div>
       <div className="chat-stream">
         <div className="chat-stream-inner">
           {messages.map((m) =>
