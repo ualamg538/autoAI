@@ -3,9 +3,7 @@ import re
 import datetime
 from pathlib import Path
 
-import psycopg
-
-from ..core.config import settings
+from ..core.db import get_conn
 from ..models import scraped, normalized
 
 
@@ -357,16 +355,18 @@ ON CONFLICT (url) DO UPDATE SET
 def guardar_en_bd(versiones: list[normalized.Version]) -> tuple[int, list[dict]]:
     insertados = 0
     fallos: list[dict] = []
-    with psycopg.connect(str(settings.DATABASE_URL)) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             for v in versiones:
                 try:
-                    cur.execute(INSERT_SQL, v.model_dump())
-                    insertados += 1
+                    with conn.transaction():  # savepoint anidado por fila
+                        cur.execute(INSERT_SQL, v.model_dump())
+                    insertados += 1  # solo si el savepoint commitea
                 except Exception as e:
+                    # Una fila mala revierte solo su savepoint; las buenas
+                    # previas se conservan y `insertados` queda exacto.
                     fallos.append({"url": v.url, "error": str(e)})
-                    conn.rollback()
-            conn.commit()
+            # commit global lo hace el context manager de get_conn() al salir
     return insertados, fallos
 
 

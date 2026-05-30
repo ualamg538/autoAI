@@ -25,6 +25,7 @@ pydantic-extra-types==2.10.6
 pydantic-settings==2.12.0
 pydantic_core==2.41.5
 psycopg[binary]==3.2.3
+psycopg-pool==3.2.4
 Pygments==2.19.2
 python-dotenv==1.2.1
 python-multipart==0.0.21

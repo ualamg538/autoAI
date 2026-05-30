@@ -1,9 +1,6 @@
 from typing import Any, Optional
 
-import psycopg
-from psycopg.rows import dict_row
-
-from ..core.config import settings
+from ..core.db import get_conn
 from ..models.normalized import Version
 
 
@@ -93,7 +90,11 @@ def listar_coches(
 
     order_sql = ORDENES_VALIDOS.get(orden) if orden else None
     if order_sql is None:
-        order_sql = "RANDOM()"
+        # Default determinista: novedades primero, paginación estable.
+        order_sql = "fecha_inicio DESC NULLS LAST, id DESC"
+    else:
+        # Desempate determinista para órdenes de la allowlist (paginación estable).
+        order_sql = f"{order_sql}, id DESC"
 
     sql = (
         f"SELECT {COLUMNAS} FROM cars "
@@ -102,7 +103,7 @@ def listar_coches(
         f"LIMIT %(limit)s OFFSET %(offset)s"
     )
 
-    with psycopg.connect(str(settings.DATABASE_URL), row_factory=dict_row) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, params)
             filas = cur.fetchall()
@@ -112,7 +113,7 @@ def listar_coches(
 
 def obtener_coche_por_id(coche_id: int) -> Optional[Version]:
     sql = f"SELECT {COLUMNAS} FROM cars WHERE id = %(id)s"
-    with psycopg.connect(str(settings.DATABASE_URL), row_factory=dict_row) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, {"id": coche_id})
             fila = cur.fetchone()
@@ -130,7 +131,7 @@ def comparar_coches(ids: list[int]) -> list[Version]:
         f"WHERE id = ANY(%(ids)s) "
         f"ORDER BY array_position(%(ids)s, id)"
     )
-    with psycopg.connect(str(settings.DATABASE_URL), row_factory=dict_row) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, {"ids": ids})
             filas = cur.fetchall()
@@ -168,6 +169,17 @@ def agregar(
     agrupacion: Optional[str],
     filtros: dict[str, Any],
 ) -> list[dict[str, Any]]:
+    """Agrega sobre la tabla `cars`.
+
+    INVARIANTE DE SEGURIDAD: `metrica`, `campo` y `agrupacion` se interpolan por
+    f-string en el SQL, por lo que DEBEN validarse contra sus allowlists
+    (METRICAS_AGREGAR, CAMPOS_AGREGABLES, AGRUPACIONES_VALIDAS) ANTES de
+    construir la query — es lo que hacen las comprobaciones de abajo. Cualquier
+    valor fuera de la allowlist lanza ValueError y no llega al SQL. Los `filtros`
+    SIEMPRE van parametrizados (%(...)s) vía `_construir_where`, nunca por
+    f-string. No relajar estas comprobaciones ni añadir nuevos campos
+    interpolados sin sumarlos a la allowlist correspondiente.
+    """
     if metrica not in METRICAS_AGREGAR:
         raise ValueError(f"Métrica no válida: {metrica}")
     if metrica != "count" and campo not in CAMPOS_AGREGABLES:
@@ -195,7 +207,7 @@ def agregar(
             f"FROM cars WHERE {where_sql}"
         )
 
-    with psycopg.connect(str(settings.DATABASE_URL), row_factory=dict_row) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, params)
             filas = cur.fetchall()
@@ -213,7 +225,7 @@ def valores_filtros_meta() -> dict[str, list[str]]:
     columnas_meta = ("marca", "combustible", "carroceria", "traccion", "transmision")
     resultado: dict[str, list[str]] = {}
 
-    with psycopg.connect(str(settings.DATABASE_URL)) as conn:
+    with get_conn() as conn:
         with conn.cursor() as cur:
             for columna in columnas_meta:
                 cur.execute(
@@ -221,6 +233,7 @@ def valores_filtros_meta() -> dict[str, list[str]]:
                     f"WHERE {columna} IS NOT NULL AND {columna} <> '' "
                     f"ORDER BY {columna}"
                 )
-                resultado[columna] = [fila[0] for fila in cur.fetchall()]
+                # El pool aporta row_factory=dict_row: la fila es un dict.
+                resultado[columna] = [fila[columna] for fila in cur.fetchall()]
 
     return resultado
