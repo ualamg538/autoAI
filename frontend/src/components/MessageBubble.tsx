@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -42,11 +43,30 @@ type MessageBubbleProps = UserBubbleProps | AssistantBubbleProps;
 
 const CHART_COLORS = ["#8ab6d6", "#9ac9a3", "#f2b880", "#c8a2d6", "#e0c36a"];
 
+// Abre los enlaces markdown en pestaña nueva. Compartido por TextBlockView y las
+// celdas de tabla para no duplicar el override del ancla.
+const MD_LINK_COMPONENT = {
+  a: ({ children, href }: { children?: ReactNode; href?: string }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
+};
+
+// Componentes para las celdas de tabla: además del enlace, `p` colapsa el <p>
+// que ReactMarkdown envuelve por defecto, para que el contenido quede inline
+// dentro del <td> (las celdas sin markdown se ven igual que en texto plano).
+const MD_CELL_COMPONENTS = {
+  ...MD_LINK_COMPONENT,
+  p: ({ children }: { children?: ReactNode }) => <>{children}</>,
+};
+
 function TextBlockView({ block }: { block: TextBlock }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
+        ...MD_LINK_COMPONENT,
         table: ({ children }) => (
           <div className="md-table-wrap">
             <table className="md-table">{children}</table>
@@ -140,7 +160,14 @@ function TableBlockView({ block }: { block: TableBlock }) {
             {block.rows.map((row, i) => (
               <tr key={i}>
                 {columns.map((c) => (
-                  <td key={c}>{String(row[c] ?? "")}</td>
+                  <td key={c}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={MD_CELL_COMPONENTS}
+                    >
+                      {String(row[c] ?? "")}
+                    </ReactMarkdown>
+                  </td>
                 ))}
               </tr>
             ))}
