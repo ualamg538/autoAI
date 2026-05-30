@@ -39,3 +39,6 @@ CREATE INDEX idx_cars_combustible  ON cars(combustible);
 CREATE INDEX idx_cars_carroceria   ON cars(carroceria);
 CREATE INDEX idx_cars_potencia     ON cars(potencia);
 CREATE INDEX idx_cars_plazas       ON cars(plazas);
+-- Soporte para el orden por defecto (fecha_inicio DESC) y el filtro solo_vigentes.
+CREATE INDEX idx_cars_fecha_inicio ON cars(fecha_inicio);
+CREATE INDEX idx_cars_vigentes     ON cars(id) WHERE fecha_fin IS NULL;
