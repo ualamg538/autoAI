@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from typing import Any
 
@@ -9,13 +10,17 @@ from ..core.config import settings
 from ..models.normalized import Version
 from . import cars_repository
 
+logger = logging.getLogger(__name__)
+
 
 @lru_cache
 def get_client() -> OpenAI:
     if not settings.OPENAI_API_KEY:
+        # El detalle (qué env var falta) va al log, no al cliente.
+        logger.error("OPENAI_API_KEY no configurada en el entorno")
         raise HTTPException(
             status_code=503,
-            detail="OPENAI_API_KEY no configurada en el entorno",
+            detail="Servicio de IA no disponible",
         )
     return OpenAI(api_key=settings.OPENAI_API_KEY)
 
