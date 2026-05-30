@@ -36,10 +36,16 @@ export default function Catalog() {
     let cancelled = false;
     fetchCars(applied, PAGE_SIZE, offset)
       .then((data) => {
-        if (!cancelled) {
-          setCars(data);
-          setError(false);
+        if (cancelled) return;
+        // El total puede ser múltiplo exacto de PAGE_SIZE: en ese caso la
+        // página siguiente llega vacía. Si pasa y no estamos en la primera,
+        // retrocedemos en vez de mostrar una página vacía.
+        if (data.length === 0 && offset > 0) {
+          setOffset((o) => Math.max(0, o - PAGE_SIZE));
+          return;
         }
+        setCars(data);
+        setError(false);
       })
       .catch(() => {
         if (!cancelled) {
