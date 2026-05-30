@@ -232,7 +232,15 @@ TOOLS: list[dict[str, Any]] = [
 
 
 def _coche_a_dict(coche: Version) -> dict[str, Any]:
-    return coche.model_dump(mode="json")
+    # `consumo_medio` se queda como número (lo necesitan `agregar` y los ChartBlock
+    # que el modelo arma a mano; recharts no pinta strings). Añadimos un campo
+    # aparte ya formateado con la unidad correcta —deducida del combustible, no del
+    # prompt— para mostrar en tablas/texto. Si no hay dato, no inventamos unidad.
+    d = coche.model_dump(mode="json")
+    if d.get("consumo_medio") is not None:
+        unidad = "kWh/100 km" if d.get("combustible") == "electrico" else "l/100 km"
+        d["consumo_formateado"] = f"{d['consumo_medio']} {unidad}"
+    return d
 
 
 _FILTRO_KEYS: frozenset[str] = frozenset(_FILTROS_SCHEMA["properties"].keys())
