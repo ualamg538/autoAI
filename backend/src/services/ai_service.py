@@ -1,4 +1,5 @@
 import logging
+import random
 from functools import lru_cache
 from typing import Any
 
@@ -237,6 +238,36 @@ def _coche_a_dict(coche: Version) -> dict[str, Any]:
 _FILTRO_KEYS: frozenset[str] = frozenset(_FILTROS_SCHEMA["properties"].keys())
 
 
+# Variedad exploratoria: cuántos candidatos pedimos por encima de `limite`
+# (pool = limite * MULTIPLICADOR) y tope duro para no traer de más de la BD.
+_POOL_MULTIPLICADOR = 5
+_POOL_MAX = 50
+
+
+def _submuestra_sesgada(coches: list[Version], k: int) -> list[Version]:
+    """Elige `k` coches del pool SIN reemplazo, con sesgo suave hacia los primeros.
+
+    El pool llega en el orden por defecto de listar_coches (los más relevantes
+    primero). Damos a cada posición un peso decreciente 1/(rango+1), de modo que
+    el #1 sale con más probabilidad que el último pero ninguno queda excluido:
+    así varía la respuesta entre llamadas sin mostrar opciones mediocres solo por
+    variar. Si el pool tiene <= k candidatos los devolvemos todos.
+    """
+    if len(coches) <= k:
+        return list(coches)
+
+    restantes = list(coches)
+    pesos = [1.0 / (i + 1) for i in range(len(restantes))]
+    elegidos: list[Version] = []
+    for _ in range(k):
+        # random.choices muestrea CON reemplazo; emulamos sin-reemplazo sacando
+        # uno a uno y retirando el elegido (y su peso) del pool.
+        (idx,) = random.choices(range(len(restantes)), weights=pesos, k=1)
+        elegidos.append(restantes.pop(idx))
+        pesos.pop(idx)
+    return elegidos
+
+
 def _extraer_filtros(args: dict[str, Any]) -> dict[str, Any]:
     """Devuelve los filtros tolerando que el modelo aplane los argumentos.
 
@@ -257,10 +288,23 @@ def ejecutar_tool(nombre: str, args: dict[str, Any]) -> Any:
         filtros = _extraer_filtros(args)
         orden = args.get("orden")
         limite = int(args.get("limite") or 10)
-        coches = cars_repository.listar_coches(
-            filtros, limite=limite, offset=0, orden=orden
+        if orden:
+            # Consulta objetiva ("el más barato/potente/nuevo"): respuesta estable
+            # y correcta, pedimos justo `limite` con ese orden y NO barajamos.
+            coches = cars_repository.listar_coches(
+                filtros, limite=limite, offset=0, orden=orden
+            )
+            return [_coche_a_dict(c) for c in coches]
+        # Consulta exploratoria (cualitativa, sin criterio objetivo): traemos un
+        # pool mayor en el orden por defecto (relevantes primero) y submuestreamos
+        # `limite` con sesgo suave hacia los mejores, para que dos peticiones
+        # iguales tiendan a devolver coches distintos sin perder calidad.
+        pool_size = min(limite * _POOL_MULTIPLICADOR, _POOL_MAX)
+        pool = cars_repository.listar_coches(
+            filtros, limite=pool_size, offset=0, orden=None
         )
-        return [_coche_a_dict(c) for c in coches]
+        seleccion = _submuestra_sesgada(pool, limite)
+        return [_coche_a_dict(c) for c in seleccion]
 
     if nombre == "obtener_coche":
         coche = cars_repository.obtener_coche_por_id(int(args["id"]))
