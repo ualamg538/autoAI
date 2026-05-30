@@ -1,4 +1,18 @@
+# Normaliza finales de línea: LF en el repo para todo el texto.
+* text=auto eol=lf
+
+# Scripts y Dockerfiles deben quedar en LF sí o sí.
 *.sh text eol=lf
 Dockerfile text eol=lf
 *.Dockerfile text eol=lf
 entrypoint.sh text eol=lf
+
+# Binarios: nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
