@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = Field(default=None)
     OPENAI_MODEL: str = Field(default="gpt-5.4-mini-2026-03-17")
 
+    # Directorio base permitido para /ingest (el volumen scraper_output:/data).
+    INGEST_DIR: str = Field(default="/data")
+
+    # Orígenes CORS permitidos, en CSV. En prod, poner la URL real del front.
+    CORS_ORIGINS: str = Field(default="http://localhost:5173")
+
+    # Hooks de seguridad de /chat e /ingest, INERTES por defecto.
+    RATE_LIMIT_PER_MIN: int = Field(default=0)  # 0 = desactivado
+    CHAT_API_KEY: str | None = Field(default=None)  # None = desactivado
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
