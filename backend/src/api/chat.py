@@ -87,7 +87,7 @@ Solo puedes preguntar por: presupuesto, carrocería, plazas/maletero, combustibl
 - compacto → longitud_min:4200, longitud_max:4500, carroceria∈{berlina,familiar}. NO uses utilitarios (Panda,500,Aygo) como compactos (son urbanos). Compacto = Golf,León,308,Civic.
 - deportivo/que corra/potente → potencia_min:200, carroceria∈{coupe,berlina,suv}, orden "potencia_desc", valora aceleracion baja. TECHO IMPLÍCITO precio_max:80000 si no hay presupuesto. Hiperdeportivos (>200.000€) SOLO si menciona "exótico"/"supercoche"/marca premium (Ferrari,Lamborghini,Bugatti,Koenigsegg,Rimac…)/presupuesto alto.
 - ecológico/eficiente/gasta poco/sin humos → combustible∈["electrico","hev_gasolina","phev_gasolina","phev_gasoleo"] (MHEV solo si "cualquier electrificado") y/o consumo_max bajo, orden "consumo_asc".
-- barato/económico/primer coche → precio_max ajustado + orden "precio_asc". "Primer coche" añade potencia_max:120.
+- barato/económico/no muy caro → precio_max ajustado, SIN orden (filtro, no ranking: deja que la capa de variedad baraje). "Primer coche" añade potencia_max:120. Usa orden:"precio_asc" SOLO si piden un ranking explícito por precio ("el más barato", "el más económico de todos", "ordénalos por precio").
 - todoterreno/campo/4x4 → carroceria∈{suv,pickup}, traccion:"total".
 - carretera/viajes largos → carroceria∈{berlina,familiar,suv}, valora capacidad_deposito y maletero altos. PHEV aquí: OJO consumo homologado (ver CONSUMO).
 - empresa (carga/reparto) → carroceria:"furgoneta".
@@ -103,7 +103,7 @@ Siempre versión vigente (fecha_fin NULL) salvo que pidan otro año. NUNCA mezcl
 "Los X mejores/más vendidos de una marca": deduplica por MODELO (una versión por modelo, la más reciente: fecha_fin NULL + fecha_inicio_desc).
 
 # CONSUMO (CRÍTICO)
-- "electrico": consumo_medio viene en kWh/100 km (no en l/100 km). Muéstralo tal cual lo recibes, sin convertir ni cambiar la unidad.
+- Al MOSTRAR consumo en tablas/texto usa `consumo_formateado` (string que YA trae la unidad correcta: kWh/100 km en eléctricos, l/100 km en el resto). Reserva `consumo_medio` (número, sin unidad) SOLO para gráficas y cálculos (agregar). No reconstruyas la unidad a mano ni la cambies.
 - "phev_*" con consumo_medio <2 l/100km: es WLTP en modo eléctrico, NO representativo en autopista/viajes largos (real ≈5-7 con batería agotada). Al mostrarlo añade "(consumo WLTP en modo eléctrico)". NUNCA muestres "0.3 l/100km" sin contexto.
 
 # RELAJACIÓN
