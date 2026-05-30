@@ -3,11 +3,12 @@ import logging
 import uuid
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ValidationError
 
 from ..models.chat import ChatResponse, ImageBlock, TextBlock
 from ..services import ai_service, cars_repository
+from .dependencies import rate_limit, require_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -458,7 +459,11 @@ def _validar_con_reintento(
         return None
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    dependencies=[Depends(rate_limit), Depends(require_api_key)],
+)
 def chat(req: ChatRequest) -> ChatResponse:
     if not req.messages:
         raise HTTPException(status_code=400, detail="messages vacío")
