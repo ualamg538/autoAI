@@ -24,11 +24,21 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini-2026-03-17}
+      INGEST_DIR: ${INGEST_DIR:-/data}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-0}
+      CHAT_API_KEY: ${CHAT_API_KEY:-}
     depends_on:
       bd:
         condition: service_healthy
     volumes:
       - scraper_output:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks: [appnet]
 
   frontend:
@@ -36,7 +46,8 @@ services:
     build:
       context: ./frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks: [appnet]
 
   scraper:
@@ -47,7 +58,8 @@ services:
       BACKEND_URL: ${BACKEND_URL}
       SCRAPER_CRON: ${SCRAPER_CRON}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     volumes:
       - scraper_output:/data
     networks: [appnet]
