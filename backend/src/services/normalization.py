@@ -375,7 +375,19 @@ def ingest_desde_archivo(ruta: str | Path) -> dict:
     with open(ruta, "r", encoding="utf-8") as f:
         datos = json.load(f)
 
-    coches_scrap = [scraped.CocheScrap(**d) for d in datos]
+    coches_scrap: list[scraped.CocheScrap] = []
+    errores_validacion: list[dict] = []
+    for i, d in enumerate(datos):
+        try:
+            coches_scrap.append(scraped.CocheScrap(**d))
+        except Exception as e:  # no solo ValidationError: un d no-dict rompe **d con TypeError
+            errores_validacion.append(
+                {
+                    "index": i,
+                    "nombre": d.get("nombre") if isinstance(d, dict) else None,
+                    "error": str(e),
+                }
+            )
 
     normalizados: list[normalized.Version] = []
     errores_norm: list[dict] = []
@@ -388,7 +400,9 @@ def ingest_desde_archivo(ruta: str | Path) -> dict:
     insertados, errores_bd = guardar_en_bd(normalizados)
 
     return {
-        "leidos": len(coches_scrap),
+        "leidos": len(datos),
+        "validados": len(coches_scrap),
+        "errores_validacion": errores_validacion,
         "normalizados": len(normalizados),
         "errores_normalizacion": errores_norm,
         "guardados": insertados,

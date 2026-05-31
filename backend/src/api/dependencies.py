@@ -8,6 +8,7 @@ límite efectivo se multiplica x4. Suficiente para un TFG/demo. Si algún día v
 tras nginx, usar X-Forwarded-For en lugar de request.client.host.
 """
 
+import secrets
 import time
 from collections import defaultdict, deque
 
@@ -37,5 +38,6 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
     expected = settings.CHAT_API_KEY
     if not expected:
         return  # desactivado -> comportamiento intacto
-    if x_api_key != expected:
+    # Comparación de tiempo constante; coercionar None (compare_digest(None,...) -> TypeError).
+    if not secrets.compare_digest(x_api_key or "", expected):
         raise HTTPException(401, "API key inválida o ausente.")
