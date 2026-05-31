@@ -4,7 +4,7 @@ import uuid
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from ..models.chat import ChatResponse, ImageBlock, TextBlock
 from ..services import ai_service, cars_repository
@@ -126,13 +126,30 @@ FLUJO: (1) llama tools necesarios, (2) emite el JSON final.
 """
 
 
+MAX_USER_CONTENT = 4000
+MAX_ASSISTANT_CONTENT = 20000
+
+
 class ChatMessage(BaseModel):
-    role: Literal["user", "assistant", "system"]
+    role: Literal["user", "assistant"]
     content: str
+
+    @model_validator(mode="after")
+    def _validar_longitud_content(self) -> "ChatMessage":
+        # El frontend reenvía cada turno del asistente como JSON.stringify({blocks}),
+        # que con tabla+imágenes supera 4000; por eso el límite es por rol.
+        limite = MAX_USER_CONTENT if self.role == "user" else MAX_ASSISTANT_CONTENT
+        if len(self.content) > limite:
+            raise ValueError(
+                f"content de {self.role} excede {limite} caracteres "
+                f"({len(self.content)})"
+            )
+        return self
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+    # NO min_length=1: el handler ya devuelve 400 para messages vacío.
+    messages: list[ChatMessage] = Field(max_length=20)
 
 
 def _construir_messages_iniciales(req: ChatRequest) -> list[dict[str, Any]]:
@@ -140,6 +157,9 @@ def _construir_messages_iniciales(req: ChatRequest) -> list[dict[str, Any]]:
         {"role": "system", "content": SYSTEM_PROMPT}
     ]
     for m in req.messages:
+        # Defensa en profundidad: el único system válido es el del servidor.
+        if m.role not in ("user", "assistant"):
+            continue
         messages.append({"role": m.role, "content": m.content})
     return messages
 
