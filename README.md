@@ -182,7 +182,7 @@ El sistema nunca improvisa. La IA actúa únicamente como traductora e intérpre
 ![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
 
 </td>
-<td>Docker Compose para dev y prod. Nginx como proxy inverso en producción.</td>
+<td>Docker Compose en entorno local/dev. Nginx sirve los estáticos del frontend.</td>
 </tr>
 </table>
 
@@ -205,16 +205,19 @@ El sistema nunca improvisa. La IA actúa únicamente como traductora e intérpre
   ┌─────────────────────────────────────────────────────────────┐
   │                        FastAPI Backend                      │
   │                                                             │
-  │   POST /api/query      ←  lenguaje natural                  │
+  │   POST /chat            ←  lenguaje natural / conversación  │
+  │   GET  /health          ←  estado del servicio              │
+  │   POST /ingest          ←  ETL del scraper a BD             │
   │   GET  /api/cars        ←  filtros REST                     │
   │   GET  /api/cars/{id}   ←  detalle                          │
   │   POST /api/compare     ←  comparar N coches                │
   │   GET  /api/filters/meta ← valores posibles                 │
   │                                                             │
   │   ┌─────────────────────────────────────────────────────┐   │
-  │   │  AI Query Pipeline                                  │   │
-  │   │  NL → [LLM] → Filtros → SQL → Resultados reales    │   │
-  │   │  Resultados → [LLM] → Explicación en lenguaje nat. │   │
+  │   │  AI Query Pipeline (bucle de tool-calling)         │   │
+  │   │  NL → [LLM] ↔ tools (buscar/obtener/comparar/      │   │
+  │   │  agregar) sobre SQL real, máx 10 iteraciones       │   │
+  │   │  → JSON estructurado {"blocks":[...]} (ChatResponse)│   │
   │   └─────────────────────────────────────────────────────┘   │
   └──────────────────────────────┬──────────────────────────────┘
                                  │
