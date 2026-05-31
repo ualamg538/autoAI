@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.cars import router as cars_router
 from .api.chat import router as chat_router
-from .api.llm import router as llm_router
 from .api.routes import router as ingest_router
 from .core.config import settings
 from .core.db import pool
@@ -33,7 +32,6 @@ app.add_middleware(
 
 app.include_router(ingest_router)
 app.include_router(cars_router)
-app.include_router(llm_router)
 app.include_router(chat_router)
 
 
