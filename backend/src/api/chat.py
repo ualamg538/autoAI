@@ -19,7 +19,7 @@ MAX_ITERACIONES_TOOLS = 10
 WARN_ITERACIONES_TOOLS = 5
 
 
-SYSTEM_PROMPT = """Asistente experto en coches del mercado español. Responde SIEMPRE en español. Accedes a la tabla `cars`.
+SYSTEM_PROMPT = """Asistente experto en coches del mercado español. Accedes a la tabla `cars`.
 
 # COLUMNAS
 - ID: id, marca, modelo, submodelo, nombre, foto_url, url
@@ -126,6 +126,26 @@ FLUJO: (1) llama tools necesarios, (2) emite el JSON final.
 """
 
 
+# Instrucción de idioma que se concatena al final del SYSTEM_PROMPT. Solo afecta
+# a la PROSA generada; los datos del coche no se traducen nunca. El resto del
+# prompt sigue en español como instrucciones internas del modelo.
+LANG_INSTRUCTION: dict[str, str] = {
+    "es": (
+        "Redacta toda la prosa generada (introducción, conclusión, respuestas "
+        "textuales y captions de imágenes) en ESPAÑOL. NO traduzcas los datos "
+        "del coche (marca, modelo, especificaciones, valores de enum, "
+        "encabezados de columnas con nombres de campo): solo se localiza la "
+        "prosa."
+    ),
+    "en": (
+        "Write all generated prose (introduction, conclusion, textual responses "
+        "and image captions) in ENGLISH. Do NOT translate the car data (make, "
+        "model, specifications, enum values, column headers with field names): "
+        "only the prose is localized."
+    ),
+}
+
+
 MAX_USER_CONTENT = 4000
 MAX_ASSISTANT_CONTENT = 20000
 
@@ -150,11 +170,16 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     # NO min_length=1: el handler ya devuelve 400 para messages vacío.
     messages: list[ChatMessage] = Field(max_length=20)
+    # default="es" mantiene compatibilidad con clientes que no lo envíen.
+    language: Literal["es", "en"] = Field(default="es")
 
 
 def _construir_messages_iniciales(req: ChatRequest) -> list[dict[str, Any]]:
+    # req.language está validado por el Literal, así que el acceso al dict es
+    # seguro. Una única instrucción de idioma al final del system prompt.
+    system = SYSTEM_PROMPT + "\n\n# IDIOMA\n" + LANG_INSTRUCTION[req.language]
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": SYSTEM_PROMPT}
+        {"role": "system", "content": system}
     ]
     for m in req.messages:
         # Defensa en profundidad: el único system válido es el del servidor.

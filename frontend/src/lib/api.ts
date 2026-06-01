@@ -43,11 +43,14 @@ const API_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ??
   "http://localhost:8000";
 
-export async function sendChat(messages: ChatMessage[]): Promise<ChatResponse> {
+export async function sendChat(
+  messages: ChatMessage[],
+  language: "es" | "en",
+): Promise<ChatResponse> {
   const res = await fetch(`${API_URL}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, language }),
   });
 
   if (!res.ok) {

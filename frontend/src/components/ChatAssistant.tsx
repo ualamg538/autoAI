@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { ArrowUp, Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import MessageBubble from "./MessageBubble";
 import {
   sendChat,
@@ -18,6 +19,7 @@ import {
   setCurrentSessionId,
   type UiMessage,
 } from "../lib/storage";
+import { usePreferences } from "../lib/usePreferences";
 
 function uiMessagesToHistory(uiMessages: UiMessage[]): ChatMessage[] {
   return uiMessages.map((m) =>
@@ -41,6 +43,8 @@ export default function ChatAssistant({
   sessionId,
   onNewSession,
 }: ChatAssistantProps) {
+  const { t } = useTranslation();
+  const { language } = usePreferences();
   const [messages, setMessages] = useState<UiMessage[]>(
     () => getSession(sessionId)?.messages ?? [],
   );
@@ -78,7 +82,7 @@ export default function ChatAssistant({
 
     try {
       const history = uiMessagesToHistory(nextMessages);
-      const reply = await sendChat(history);
+      const reply = await sendChat(history, language);
       setMessages((prev) => [
         ...prev,
         {
@@ -96,7 +100,7 @@ export default function ChatAssistant({
           blocks: [
             {
               type: "text",
-              content: "Error al conectar con el asistente. Inténtalo de nuevo.",
+              content: t("chat.error"),
             },
           ],
           isError: true,
@@ -123,14 +127,14 @@ export default function ChatAssistant({
     return (
       <div className="chat-hero">
         <h1 className="chat-hero-title">
-          Pregunta lo que quieras
+          {t("chat.heroTitleLine1")}
           <br />
-          sobre tu próximo coche
+          {t("chat.heroTitleLine2")}
         </h1>
         <form className="chat-hero-form" onSubmit={handleHeroSubmit}>
           <textarea
             className="chat-hero-textarea"
-            placeholder="Recomienda el mejor coche para un estudiante..."
+            placeholder={t("chat.heroPlaceholder")}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleInputKeyDown}
@@ -142,7 +146,7 @@ export default function ChatAssistant({
             className="btn-primary"
             disabled={loading || !draft.trim()}
           >
-            Obtener respuesta
+            {t("chat.getAnswer")}
           </button>
         </form>
       </div>
@@ -159,7 +163,7 @@ export default function ChatAssistant({
           disabled={loading}
         >
           <Plus size={16} aria-hidden />
-          Nueva conversación
+          {t("chat.newConversation")}
         </button>
       </div>
       <div className="chat-stream">
@@ -184,7 +188,7 @@ export default function ChatAssistant({
           {loading ? (
             <div className="msg ai">
               <div className="msg-content">
-                <span className="typing-dots" aria-label="Escribiendo">
+                <span className="typing-dots" aria-label={t("chat.typing")}>
                   <span />
                   <span />
                   <span />
@@ -205,7 +209,7 @@ export default function ChatAssistant({
         >
           <textarea
             className="chat-input-textarea"
-            placeholder="Escribe un mensaje..."
+            placeholder={t("chat.inputPlaceholder")}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleInputKeyDown}
@@ -215,7 +219,7 @@ export default function ChatAssistant({
           <button
             type="submit"
             className="send-btn"
-            aria-label="Enviar"
+            aria-label={t("chat.send")}
             disabled={loading || !draft.trim()}
           >
             <ArrowUp size={18} aria-hidden />
