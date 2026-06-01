@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MessageSquareDashed, Trash2 } from "lucide-react";
 import {
   deleteSession,
   listSessions,
@@ -27,9 +28,14 @@ export default function History({
   if (sessions.length === 0) {
     return (
       <div className="aux-view">
-        <div className="aux-empty">
-          Todavía no hay conversaciones guardadas. Pregúntale algo al
-          asistente y aparecerán aquí.
+        <div className="state-block state-empty">
+          <span className="state-icon">
+            <MessageSquareDashed size={24} aria-hidden />
+          </span>
+          <p className="state-text">
+            Todavía no hay conversaciones guardadas. Pregúntale algo al
+            asistente y aparecerán aquí.
+          </p>
         </div>
       </div>
     );
@@ -59,7 +65,7 @@ export default function History({
               title="Eliminar conversación"
               onClick={() => remove(s.id)}
             >
-              🗑️
+              <Trash2 size={16} aria-hidden />
             </button>
           </li>
         ))}

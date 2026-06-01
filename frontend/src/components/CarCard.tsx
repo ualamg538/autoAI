@@ -1,3 +1,4 @@
+import { Heart } from "lucide-react";
 import type { Car } from "../lib/api";
 import { formatCombustible, formatNumero, formatPrecio } from "../lib/format";
 import { toggleFavorite, useFavorites } from "../lib/storage";
@@ -16,7 +17,7 @@ export default function CarCard({ car }: { car: Car }) {
         title={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
         onClick={() => toggleFavorite(car.id)}
       >
-        {fav ? "❤️" : "🤍"}
+        <Heart size={16} aria-hidden fill={fav ? "currentColor" : "none"} />
       </button>
       <a
         className="car-card-media"

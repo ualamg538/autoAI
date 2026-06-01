@@ -5,6 +5,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
+import { ArrowUp, Plus } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import {
   sendChat,
@@ -157,7 +158,8 @@ export default function ChatAssistant({
           onClick={onNewSession}
           disabled={loading}
         >
-          ＋ Nueva conversación
+          <Plus size={16} aria-hidden />
+          Nueva conversación
         </button>
       </div>
       <div className="chat-stream">
@@ -216,7 +218,7 @@ export default function ChatAssistant({
             aria-label="Enviar"
             disabled={loading || !draft.trim()}
           >
-            ↑
+            <ArrowUp size={18} aria-hidden />
           </button>
         </form>
       </div>

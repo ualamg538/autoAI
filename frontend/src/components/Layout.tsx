@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Car, Menu, Settings } from "lucide-react";
 import Sidebar, { type ViewKey } from "./Sidebar";
 
 interface LayoutProps {
@@ -24,16 +25,16 @@ export default function Layout({
             aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
             onClick={() => setCollapsed((c) => !c)}
           >
-            ☰
+            <Menu size={20} aria-hidden />
           </button>
         </div>
         <div className="topbar-center">
-          <span aria-hidden>🚗</span>
+          <Car className="topbar-brand-icon" size={20} aria-hidden />
           <span>AutoAI</span>
         </div>
         <div className="topbar-right">
           <button type="button" className="icon-btn" aria-label="Ajustes">
-            ⚙️
+            <Settings size={20} aria-hidden />
           </button>
         </div>
       </header>
