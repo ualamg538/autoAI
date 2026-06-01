@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 from pydantic.json_schema import SkipJsonSchema
@@ -33,7 +33,7 @@ class ImageBlock(BaseModel):
 
 
 Block = Annotated[
-    Union[TextBlock, ChartBlock, TableBlock, ImageBlock],
+    TextBlock | ChartBlock | TableBlock | ImageBlock,
     Field(discriminator="type"),
 ]
 

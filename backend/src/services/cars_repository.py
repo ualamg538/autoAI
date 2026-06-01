@@ -1,8 +1,7 @@
-from typing import Any, Optional
+from typing import Any
 
 from ..core.db import get_conn
 from ..models.normalized import Version
-
 
 COLUMNAS = (
     "id, marca, modelo, submodelo, nombre, foto_url, "
@@ -22,7 +21,7 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         valor = filtros.get(campo)
         if valor is None or valor == "" or valor == []:
             continue
-        if isinstance(valor, (list, tuple, set)):
+        if isinstance(valor, list | tuple | set):
             valores = [str(v).strip().lower() for v in valor if str(v).strip()]
             if not valores:
                 continue
@@ -51,7 +50,7 @@ def _construir_where(filtros: dict[str, Any]) -> tuple[str, dict[str, Any]]:
 
     if filtros.get("solo_vigentes") is True:
         condiciones.append("fecha_fin IS NULL")
-    
+
     for clave, columna, op in rangos:
         valor = filtros.get(clave)
         if valor is not None:
@@ -82,7 +81,7 @@ def listar_coches(
     filtros: dict[str, Any],
     limite: int,
     offset: int,
-    orden: Optional[str] = None,
+    orden: str | None = None,
 ) -> list[Version]:
     where_sql, params = _construir_where(filtros)
     params["limit"] = limite
@@ -111,7 +110,7 @@ def listar_coches(
     return [Version(**fila) for fila in filas]
 
 
-def obtener_coche_por_id(coche_id: int) -> Optional[Version]:
+def obtener_coche_por_id(coche_id: int) -> Version | None:
     sql = f"SELECT {COLUMNAS} FROM cars WHERE id = %(id)s"
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -166,7 +165,7 @@ AGRUPACIONES_VALIDAS = {
 def agregar(
     metrica: str,
     campo: str,
-    agrupacion: Optional[str],
+    agrupacion: str | None,
     filtros: dict[str, Any],
 ) -> list[dict[str, Any]]:
     """Agrega sobre la tabla `cars`.

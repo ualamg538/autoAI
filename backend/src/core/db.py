@@ -1,8 +1,7 @@
-from psycopg_pool import ConnectionPool
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 from .config import settings
-
 
 # min/max son POR PROCESO; con uvicorn --workers 4 el tope real es x4.
 pool = ConnectionPool(

@@ -14,7 +14,6 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
-
 from src.api import chat as chat_module
 from src.api.chat import (
     ChatResponse,
@@ -26,7 +25,6 @@ from src.api.chat import (
 from src.main import app
 from src.models.chat import ImageBlock, TextBlock
 from src.models.normalized import Version
-
 
 # --- Helpers ---------------------------------------------------------------
 

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -6,23 +5,22 @@ from pydantic import BaseModel
 from ..models.normalized import Version
 from ..services import cars_repository
 
-
 router = APIRouter(prefix="/api")
 
 
 @router.get("/cars", response_model=list[Version])
 def listar_coches(
-    marca: Optional[str] = None,
-    modelo: Optional[str] = None,
-    combustible: Optional[str] = None,
-    carroceria: Optional[str] = None,
-    traccion: Optional[str] = None,
-    transmision: Optional[str] = None,
-    precio_min: Optional[float] = Query(default=None, ge=0),
-    precio_max: Optional[float] = Query(default=None, ge=0),
-    potencia_min: Optional[float] = Query(default=None, ge=0),
-    potencia_max: Optional[float] = Query(default=None, ge=0),
-    plazas_min: Optional[int] = Query(default=None, ge=0),
+    marca: str | None = None,
+    modelo: str | None = None,
+    combustible: str | None = None,
+    carroceria: str | None = None,
+    traccion: str | None = None,
+    transmision: str | None = None,
+    precio_min: float | None = Query(default=None, ge=0),
+    precio_max: float | None = Query(default=None, ge=0),
+    potencia_min: float | None = Query(default=None, ge=0),
+    potencia_max: float | None = Query(default=None, ge=0),
+    plazas_min: int | None = Query(default=None, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> list[Version]:

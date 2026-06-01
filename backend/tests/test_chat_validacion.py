@@ -12,10 +12,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
-
 from src.api.chat import ChatMessage, ChatRequest
 from src.main import app
-
 
 # --- Validación de modelos (sin red) ---------------------------------------
 

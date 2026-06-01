@@ -6,7 +6,6 @@ TypeError (compare_digest no acepta None) sino HTTPException 401.
 
 import pytest
 from fastapi import HTTPException
-
 from src.api import dependencies
 from src.core.config import settings
 

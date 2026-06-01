@@ -1,10 +1,10 @@
+import datetime
 import json
 import re
-import datetime
 from pathlib import Path
 
 from ..core.db import get_conn
-from ..models import scraped, normalized
+from ..models import normalized, scraped
 
 
 def parse_opcional(valor: str, tipo=None):
@@ -372,7 +372,7 @@ def guardar_en_bd(versiones: list[normalized.Version]) -> tuple[int, list[dict]]
 
 def ingest_desde_archivo(ruta: str | Path) -> dict:
     """Lee el JSON del scraper, normaliza y persiste en BD."""
-    with open(ruta, "r", encoding="utf-8") as f:
+    with open(ruta, encoding="utf-8") as f:
         datos = json.load(f)
 
     coches_scrap: list[scraped.CocheScrap] = []

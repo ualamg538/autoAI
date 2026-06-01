@@ -3,10 +3,10 @@
 import datetime
 
 from pydantic import BaseModel
-from typing import Optional
+
 
 class Version(BaseModel):
-    id: Optional[int] = None
+    id: int | None = None
     marca : str
     modelo : str
     submodelo : str
@@ -16,18 +16,18 @@ class Version(BaseModel):
     # Opcionales: km77 deja '-' / 'Múltiples' / vacío en estos campos para
     # pickups (sin maletero) y para híbridos/EV con e-CVT (sin marchas
     # discretas). La columna en BD ya admite NULL.
-    plazas: Optional[int]
-    longitud: Optional[float]
-    anchura: Optional[float]
-    altura: Optional[float]
-    capacidad_maletero: Optional[float]
+    plazas: int | None
+    longitud: float | None
+    anchura: float | None
+    altura: float | None
+    capacidad_maletero: float | None
     carroceria: str
-    puertas: Optional[int]
-    
-    precio: Optional[float]
-    fecha_inicio: Optional[datetime.date]
-    fecha_fin: Optional[datetime.date]
-    
+    puertas: int | None
+
+    precio: float | None
+    fecha_inicio: datetime.date | None
+    fecha_fin: datetime.date | None
+
     # `combustible` codifica fuente fósil + nivel de electrificación en un único
     # valor canónico (km77 no aporta "híbrido"/"eléctrico"; la electrificación va
     # implícita en `nombre`/`submodelo` y se deriva en normalizar_combustible()).
@@ -41,17 +41,17 @@ class Version(BaseModel):
     #   "hev_gasolina"   -> híbrido autorrecargable (full hybrid) gasolina
     #   "phev_gasolina"  -> híbrido enchufable gasolina
     #   "phev_gasoleo"   -> híbrido enchufable diésel
-    combustible: Optional[str]
-    potencia: Optional[float]
-    aceleracion: Optional[float]
-    velocidad_maxima: Optional[float]
-    peso: Optional[float]
-    consumo_medio: Optional[float]
+    combustible: str | None
+    potencia: float | None
+    aceleracion: float | None
+    velocidad_maxima: float | None
+    peso: float | None
+    consumo_medio: float | None
     traccion: str
     transmision: str
-    numero_marchas: Optional[int]  # None si km77 da 'Múltiples'/'No disponible'
-    capacidad_deposito: Optional[float]
-    
+    numero_marchas: int | None  # None si km77 da 'Múltiples'/'No disponible'
+    capacidad_deposito: float | None
+
     url: str
 
 

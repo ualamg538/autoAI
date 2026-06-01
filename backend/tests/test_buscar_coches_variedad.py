@@ -10,7 +10,6 @@ red) y comprobamos:
 from collections import Counter
 
 import pytest
-
 from src.models.normalized import Version
 from src.services import ai_service
 

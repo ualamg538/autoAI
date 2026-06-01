@@ -15,7 +15,6 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-
 # ── Campos que mapean a cada nivel ───────────────────────────────────────────
 
 CAMPOS_CANDIDATOS = {

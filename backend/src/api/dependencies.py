@@ -16,7 +16,6 @@ from fastapi import Header, HTTPException, Request
 
 from ..core.config import settings
 
-
 _hits: dict[str, deque] = defaultdict(deque)
 
 

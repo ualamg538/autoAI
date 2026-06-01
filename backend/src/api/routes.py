@@ -34,5 +34,5 @@ def ingest(req: IngestRequest) -> dict:
         resumen = ingest_desde_archivo(ruta)
     except Exception:
         logger.exception("Fallo en ingest")  # detalle solo en logs
-        raise HTTPException(status_code=500, detail="Fallo en ingest")
+        raise HTTPException(status_code=500, detail="Fallo en ingest") from None
     return resumen

@@ -5,7 +5,6 @@ abriría el pool e intentaría conectar a Postgres. /health no usa la BD.
 """
 
 from fastapi.testclient import TestClient
-
 from src.main import app
 
 

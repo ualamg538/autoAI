@@ -14,12 +14,10 @@ from pathlib import Path
 
 import psycopg
 import pytest
-
 from src.core.config import settings
 from src.core.db import get_conn
 from src.models.normalized import Version
 from src.services import cars_repository as repo
-
 
 pytestmark = pytest.mark.integration
 
