@@ -22,6 +22,7 @@
 ![Scrapy](https://img.shields.io/badge/Scrapy-60A839?style=for-the-badge&logo=scrapy&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
+[![CI](https://github.com/ualamg538/autoAI/actions/workflows/ci.yml/badge.svg)](https://github.com/ualamg538/autoAI/actions/workflows/ci.yml)
 ![Estado](https://img.shields.io/badge/estado-en%20desarrollo-yellow?style=flat-square)
 ![TFG](https://img.shields.io/badge/proyecto-TFG-blue?style=flat-square)
 ![Datos](https://img.shields.io/badge/coches-73.000%2B-green?style=flat-square)
