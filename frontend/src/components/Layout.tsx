@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Car, Menu, Settings } from "lucide-react";
 import Sidebar, { type ViewKey } from "./Sidebar";
+import SettingsDrawer from "./SettingsDrawer";
 
 interface LayoutProps {
   activeView: ViewKey;
@@ -14,6 +15,14 @@ export default function Layout({
   children,
 }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+
+  function closeSettings() {
+    setSettingsOpen(false);
+    // Devuelve el foco al botón que abrió el drawer (accesibilidad).
+    settingsBtnRef.current?.focus();
+  }
 
   return (
     <div className="app-root">
@@ -33,7 +42,15 @@ export default function Layout({
           <span>AutoAI</span>
         </div>
         <div className="topbar-right">
-          <button type="button" className="icon-btn" aria-label="Ajustes">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Ajustes"
+            ref={settingsBtnRef}
+            aria-haspopup="dialog"
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen(true)}
+          >
             <Settings size={20} aria-hidden />
           </button>
         </div>
@@ -46,6 +63,7 @@ export default function Layout({
         />
         <main className="content">{children}</main>
       </div>
+      <SettingsDrawer open={settingsOpen} onClose={closeSettings} />
     </div>
   );
 }

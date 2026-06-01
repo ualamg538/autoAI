@@ -1111,3 +1111,116 @@ input {
   background: var(--danger-soft);
   color: var(--danger);
 }
+
+/* ---------- Settings drawer (panel de ajustes) ---------- */
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(16, 24, 40, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  animation: drawer-overlay-in var(--transition);
+}
+
+.settings-drawer {
+  width: 320px;
+  max-width: 90vw;
+  height: 100%;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: drawer-slide-in 200ms ease;
+}
+
+@keyframes drawer-overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+.settings-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.settings-drawer-title {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  margin: 0;
+}
+
+.settings-drawer-body {
+  padding: var(--sp-5) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  overflow-y: auto;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.settings-label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.settings-theme-toggle {
+  align-self: flex-start;
+}
+
+.settings-radiogroup {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.settings-radio {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  transition: background var(--transition), border-color var(--transition),
+    color var(--transition);
+}
+
+.settings-radio:hover {
+  background: var(--bg-hover);
+}
+
+.settings-radio.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-overlay,
+  .settings-drawer {
+    animation: none;
+  }
+}

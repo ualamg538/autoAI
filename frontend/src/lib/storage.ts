@@ -7,6 +7,7 @@ import type { Block } from "./api";
 const FAVORITES_KEY = "autoai.favorites.v1";
 const SESSIONS_KEY = "autoai.chat.sessions.v1";
 const CURRENT_SESSION_KEY = "autoai.chat.current.v1";
+const PREFS_KEY = "autoai.prefs.v1";
 
 /* ---------- Favoritos (lista de IDs de coche) ---------- */
 
@@ -187,4 +188,62 @@ export function getCurrentSessionId(): string | null {
 
 export function setCurrentSessionId(id: string): void {
   localStorage.setItem(CURRENT_SESSION_KEY, id);
+}
+
+/* ---------- Preferencias de accesibilidad (tema / fuente / idioma) ---------- */
+
+export type ThemePref = "light" | "dark";
+export type FontSizePref = "small" | "normal" | "large";
+export type LanguagePref = "es" | "en";
+
+export interface Preferences {
+  theme: ThemePref;
+  fontSize: FontSizePref;
+  language: LanguagePref;
+}
+
+export const DEFAULT_PREFERENCES: Preferences = {
+  theme: "light",
+  fontSize: "normal",
+  language: "es",
+};
+
+// Valores permitidos por campo, para validar lo leído de localStorage.
+const THEME_VALUES: readonly ThemePref[] = ["light", "dark"];
+const FONT_SIZE_VALUES: readonly FontSizePref[] = ["small", "normal", "large"];
+const LANGUAGE_VALUES: readonly LanguagePref[] = ["es", "en"];
+
+function oneOf<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  return typeof value === "string" && (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : fallback;
+}
+
+/**
+ * Lee las preferencias validando cada campo contra sus valores permitidos y
+ * cayendo a `DEFAULT_PREFERENCES` por campo (defensivo, como `readFavorites`).
+ */
+export function readPreferences(): Preferences {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return { ...DEFAULT_PREFERENCES };
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return { ...DEFAULT_PREFERENCES };
+    const p = parsed as Record<string, unknown>;
+    return {
+      theme: oneOf(p.theme, THEME_VALUES, DEFAULT_PREFERENCES.theme),
+      fontSize: oneOf(p.fontSize, FONT_SIZE_VALUES, DEFAULT_PREFERENCES.fontSize),
+      language: oneOf(p.language, LANGUAGE_VALUES, DEFAULT_PREFERENCES.language),
+    };
+  } catch {
+    return { ...DEFAULT_PREFERENCES };
+  }
+}
+
+export function writePreferences(prefs: Preferences): void {
+  localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
 }
