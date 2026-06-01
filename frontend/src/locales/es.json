@@ -1,0 +1,98 @@
+{
+  "common": {
+    "dash": "—",
+    "retry": "Reintentar"
+  },
+  "layout": {
+    "expandMenu": "Expandir menú",
+    "collapseMenu": "Colapsar menú",
+    "settings": "Ajustes",
+    "closeSettings": "Cerrar ajustes"
+  },
+  "sidebar": {
+    "nav": "Navegación principal",
+    "assistant": "Asistente",
+    "catalog": "Catálogo",
+    "history": "Historial",
+    "favorites": "Favoritos"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "theme": "Tema",
+    "dark": "Oscuro",
+    "light": "Claro",
+    "fontSize": "Tamaño de fuente",
+    "fontSmall": "Pequeño",
+    "fontNormal": "Normal",
+    "fontLarge": "Grande",
+    "language": "Idioma"
+  },
+  "favorite": {
+    "add": "Guardar en favoritos",
+    "remove": "Quitar de favoritos"
+  },
+  "carCard": {
+    "fuel": "Combustible",
+    "power": "Potencia",
+    "bodywork": "Carrocería",
+    "seats": "Plazas"
+  },
+  "catalog": {
+    "brand": "Marca",
+    "fuel": "Combustible",
+    "bodywork": "Carrocería",
+    "traction": "Tracción",
+    "transmission": "Transmisión",
+    "model": "Modelo",
+    "priceMin": "Precio mín. (€)",
+    "priceMax": "Precio máx. (€)",
+    "powerMin": "Potencia mín. (CV)",
+    "seatsMin": "Plazas mín.",
+    "optionAllF": "Todas",
+    "optionAllM": "Todos",
+    "modelPlaceholder": "p. ej. corolla",
+    "apply": "Aplicar filtros",
+    "clear": "Limpiar",
+    "prev": "← Anterior",
+    "next": "Siguiente →",
+    "page": "Página {{page}}",
+    "errorText": "No se pudo cargar el catálogo. Inténtalo de nuevo.",
+    "emptyText": "Ningún coche coincide con esos filtros."
+  },
+  "chat": {
+    "heroTitleLine1": "Pregunta lo que quieras",
+    "heroTitleLine2": "sobre tu próximo coche",
+    "heroPlaceholder": "Recomienda el mejor coche para un estudiante...",
+    "getAnswer": "Obtener respuesta",
+    "newConversation": "Nueva conversación",
+    "inputPlaceholder": "Escribe un mensaje...",
+    "typing": "Escribiendo",
+    "send": "Enviar",
+    "error": "Error al conectar con el asistente. Inténtalo de nuevo."
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "empty": "No tienes coches guardados. Pulsa el corazón en cualquier coche del catálogo o del chat para añadirlo.",
+    "loadingMore": "Cargando más favoritos…"
+  },
+  "history": {
+    "title": "Historial",
+    "empty": "Todavía no hay conversaciones guardadas. Pregúntale algo al asistente y aparecerán aquí.",
+    "messages": "mensajes",
+    "delete": "Eliminar conversación"
+  },
+  "format": {
+    "fuel": {
+      "gasolina": "Gasolina",
+      "gasoleo": "Diésel",
+      "gas": "Gas (GLP/GNC)",
+      "electrico": "Eléctrico",
+      "mhev_gasolina": "Microhíbrido gasolina",
+      "mhev_gasoleo": "Microhíbrido diésel",
+      "hev_gasolina": "Híbrido gasolina",
+      "phev_gasolina": "Híbrido enchufable gasolina",
+      "phev_gasoleo": "Híbrido enchufable diésel"
+    },
+    "priceUnavailable": "Precio no disponible"
+  }
+}

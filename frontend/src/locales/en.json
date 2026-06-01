@@ -1,0 +1,98 @@
+{
+  "common": {
+    "dash": "—",
+    "retry": "Retry"
+  },
+  "layout": {
+    "expandMenu": "Expand menu",
+    "collapseMenu": "Collapse menu",
+    "settings": "Settings",
+    "closeSettings": "Close settings"
+  },
+  "sidebar": {
+    "nav": "Main navigation",
+    "assistant": "Assistant",
+    "catalog": "Catalog",
+    "history": "History",
+    "favorites": "Favorites"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Normal",
+    "fontLarge": "Large",
+    "language": "Language"
+  },
+  "favorite": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites"
+  },
+  "carCard": {
+    "fuel": "Fuel",
+    "power": "Power",
+    "bodywork": "Body type",
+    "seats": "Seats"
+  },
+  "catalog": {
+    "brand": "Make",
+    "fuel": "Fuel",
+    "bodywork": "Body type",
+    "traction": "Drivetrain",
+    "transmission": "Transmission",
+    "model": "Model",
+    "priceMin": "Min. price (€)",
+    "priceMax": "Max. price (€)",
+    "powerMin": "Min. power (hp)",
+    "seatsMin": "Min. seats",
+    "optionAllF": "All",
+    "optionAllM": "All",
+    "modelPlaceholder": "e.g. corolla",
+    "apply": "Apply filters",
+    "clear": "Clear",
+    "prev": "← Previous",
+    "next": "Next →",
+    "page": "Page {{page}}",
+    "errorText": "Couldn't load the catalog. Please try again.",
+    "emptyText": "No car matches those filters."
+  },
+  "chat": {
+    "heroTitleLine1": "Ask anything",
+    "heroTitleLine2": "about your next car",
+    "heroPlaceholder": "Recommend the best car for a student...",
+    "getAnswer": "Get answer",
+    "newConversation": "New conversation",
+    "inputPlaceholder": "Type a message...",
+    "typing": "Typing",
+    "send": "Send",
+    "error": "Couldn't connect to the assistant. Please try again."
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": "You have no saved cars. Tap the heart on any car in the catalog or chat to add it.",
+    "loadingMore": "Loading more favorites…"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No saved conversations yet. Ask the assistant something and they'll show up here.",
+    "messages": "messages",
+    "delete": "Delete conversation"
+  },
+  "format": {
+    "fuel": {
+      "gasolina": "Petrol",
+      "gasoleo": "Diesel",
+      "gas": "Gas (LPG/CNG)",
+      "electrico": "Electric",
+      "mhev_gasolina": "Mild hybrid petrol",
+      "mhev_gasoleo": "Mild hybrid diesel",
+      "hev_gasolina": "Hybrid petrol",
+      "phev_gasolina": "Plug-in hybrid petrol",
+      "phev_gasoleo": "Plug-in hybrid diesel"
+    },
+    "priceUnavailable": "Price unavailable"
+  }
+}
