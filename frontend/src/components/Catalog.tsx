@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AlertCircle, SearchX } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   fetchCars,
   fetchFiltersMeta,
@@ -37,6 +38,7 @@ function parseNum(value: string): number | undefined {
 }
 
 export default function Catalog() {
+  const { t } = useTranslation();
   const [meta, setMeta] = useState<FiltersMeta | null>(null);
   const [filters, setFilters] = useState<CatalogFilters>({});
   const [applied, setApplied] = useState<CatalogFilters>({});
@@ -124,13 +126,13 @@ export default function Catalog() {
     <div className="catalog">
       <form className="catalog-filters" onSubmit={onSubmit}>
         <div className="filter-field">
-          <label htmlFor="f-marca">Marca</label>
+          <label htmlFor="f-marca">{t("catalog.brand")}</label>
           <select
             id="f-marca"
             value={filters.marca ?? ""}
             onChange={(e) => setField("marca", e.target.value || undefined)}
           >
-            <option value="">Todas</option>
+            <option value="">{t("catalog.optionAllF")}</option>
             {meta?.marca.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -140,7 +142,7 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-combustible">Combustible</label>
+          <label htmlFor="f-combustible">{t("catalog.fuel")}</label>
           <select
             id="f-combustible"
             value={filters.combustible ?? ""}
@@ -148,7 +150,7 @@ export default function Catalog() {
               setField("combustible", e.target.value || undefined)
             }
           >
-            <option value="">Todos</option>
+            <option value="">{t("catalog.optionAllM")}</option>
             {meta?.combustible.map((c) => (
               <option key={c} value={c}>
                 {formatCombustible(c)}
@@ -158,7 +160,7 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-carroceria">Carrocería</label>
+          <label htmlFor="f-carroceria">{t("catalog.bodywork")}</label>
           <select
             id="f-carroceria"
             value={filters.carroceria ?? ""}
@@ -166,7 +168,7 @@ export default function Catalog() {
               setField("carroceria", e.target.value || undefined)
             }
           >
-            <option value="">Todas</option>
+            <option value="">{t("catalog.optionAllF")}</option>
             {meta?.carroceria.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -176,23 +178,23 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-traccion">Tracción</label>
+          <label htmlFor="f-traccion">{t("catalog.traction")}</label>
           <select
             id="f-traccion"
             value={filters.traccion ?? ""}
             onChange={(e) => setField("traccion", e.target.value || undefined)}
           >
-            <option value="">Todas</option>
-            {meta?.traccion.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            <option value="">{t("catalog.optionAllF")}</option>
+            {meta?.traccion.map((tr) => (
+              <option key={tr} value={tr}>
+                {tr}
               </option>
             ))}
           </select>
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-transmision">Transmisión</label>
+          <label htmlFor="f-transmision">{t("catalog.transmission")}</label>
           <select
             id="f-transmision"
             value={filters.transmision ?? ""}
@@ -200,28 +202,28 @@ export default function Catalog() {
               setField("transmision", e.target.value || undefined)
             }
           >
-            <option value="">Todas</option>
-            {meta?.transmision.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            <option value="">{t("catalog.optionAllF")}</option>
+            {meta?.transmision.map((tr) => (
+              <option key={tr} value={tr}>
+                {tr}
               </option>
             ))}
           </select>
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-modelo">Modelo</label>
+          <label htmlFor="f-modelo">{t("catalog.model")}</label>
           <input
             id="f-modelo"
             type="text"
-            placeholder="p. ej. corolla"
+            placeholder={t("catalog.modelPlaceholder")}
             value={filters.modelo ?? ""}
             onChange={(e) => setField("modelo", e.target.value || undefined)}
           />
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-precio-min">Precio mín. (€)</label>
+          <label htmlFor="f-precio-min">{t("catalog.priceMin")}</label>
           <input
             id="f-precio-min"
             type="number"
@@ -234,7 +236,7 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-precio-max">Precio máx. (€)</label>
+          <label htmlFor="f-precio-max">{t("catalog.priceMax")}</label>
           <input
             id="f-precio-max"
             type="number"
@@ -247,7 +249,7 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-potencia-min">Potencia mín. (CV)</label>
+          <label htmlFor="f-potencia-min">{t("catalog.powerMin")}</label>
           <input
             id="f-potencia-min"
             type="number"
@@ -260,7 +262,7 @@ export default function Catalog() {
         </div>
 
         <div className="filter-field">
-          <label htmlFor="f-plazas-min">Plazas mín.</label>
+          <label htmlFor="f-plazas-min">{t("catalog.seatsMin")}</label>
           <input
             id="f-plazas-min"
             type="number"
@@ -274,10 +276,10 @@ export default function Catalog() {
 
         <div className="filter-actions">
           <button type="submit" className="btn-primary">
-            Aplicar filtros
+            {t("catalog.apply")}
           </button>
           <button type="button" className="btn-ghost" onClick={onReset}>
-            Limpiar
+            {t("catalog.clear")}
           </button>
         </div>
       </form>
@@ -290,15 +292,13 @@ export default function Catalog() {
             <span className="state-icon">
               <AlertCircle size={24} aria-hidden />
             </span>
-            <p className="state-text">
-              No se pudo cargar el catálogo. Inténtalo de nuevo.
-            </p>
+            <p className="state-text">{t("catalog.errorText")}</p>
             <button
               type="button"
               className="btn-primary"
               onClick={() => reloadWith(applied, offset)}
             >
-              Reintentar
+              {t("common.retry")}
             </button>
           </div>
         ) : cars.length === 0 ? (
@@ -306,9 +306,7 @@ export default function Catalog() {
             <span className="state-icon">
               <SearchX size={24} aria-hidden />
             </span>
-            <p className="state-text">
-              Ningún coche coincide con esos filtros.
-            </p>
+            <p className="state-text">{t("catalog.emptyText")}</p>
           </div>
         ) : (
           <>
@@ -324,16 +322,16 @@ export default function Catalog() {
                 disabled={!canPrev}
                 onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
               >
-                ← Anterior
+                {t("catalog.prev")}
               </button>
-              <span>Página {page}</span>
+              <span>{t("catalog.page", { page })}</span>
               <button
                 type="button"
                 className="btn-ghost"
                 disabled={!canNext}
                 onClick={() => goToPage(offset + PAGE_SIZE)}
               >
-                Siguiente →
+                {t("catalog.next")}
               </button>
             </div>
           </>

@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import { Moon, Sun, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { usePreferences } from "../lib/usePreferences";
 import type { FontSizePref, LanguagePref } from "../lib/storage";
 
@@ -13,12 +14,14 @@ interface SettingsDrawerProps {
   onClose: () => void;
 }
 
-const FONT_SIZE_OPTIONS: { value: FontSizePref; label: string }[] = [
-  { value: "small", label: "Pequeño" },
-  { value: "normal", label: "Normal" },
-  { value: "large", label: "Grande" },
+const FONT_SIZE_OPTIONS: { value: FontSizePref; labelKey: string }[] = [
+  { value: "small", labelKey: "settings.fontSmall" },
+  { value: "normal", labelKey: "settings.fontNormal" },
+  { value: "large", labelKey: "settings.fontLarge" },
 ];
 
+// Las etiquetas del selector de idioma se dejan en su propio idioma nativo
+// (no se traducen): siempre "Español" y "English".
 const LANGUAGE_OPTIONS: { value: LanguagePref; label: string }[] = [
   { value: "es", label: "Español" },
   { value: "en", label: "English" },
@@ -29,6 +32,7 @@ const FOCUSABLE =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
+  const { t } = useTranslation();
   const { theme, fontSize, language, setTheme, setFontSize, setLanguage } =
     usePreferences();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -88,12 +92,12 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
       >
         <div className="settings-drawer-header">
           <h2 id="settings-drawer-title" className="settings-drawer-title">
-            Ajustes
+            {t("settings.title")}
           </h2>
           <button
             type="button"
             className="icon-btn"
-            aria-label="Cerrar ajustes"
+            aria-label={t("layout.closeSettings")}
             onClick={onClose}
           >
             <X size={20} aria-hidden />
@@ -103,7 +107,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         <div className="settings-drawer-body">
           {/* Tema */}
           <section className="settings-section">
-            <h3 className="settings-label">Tema</h3>
+            <h3 className="settings-label">{t("settings.theme")}</h3>
             <button
               type="button"
               ref={firstControlRef}
@@ -116,14 +120,14 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               ) : (
                 <Sun size={16} aria-hidden />
               )}
-              {isDark ? "Oscuro" : "Claro"}
+              {isDark ? t("settings.dark") : t("settings.light")}
             </button>
           </section>
 
           {/* Tamaño de fuente */}
           <section className="settings-section">
             <h3 className="settings-label" id="settings-fontsize-label">
-              Tamaño de fuente
+              {t("settings.fontSize")}
             </h3>
             <div
               className="settings-radiogroup"
@@ -141,7 +145,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
                   }`}
                   onClick={() => setFontSize(opt.value)}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               ))}
             </div>
@@ -150,7 +154,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           {/* Idioma */}
           <section className="settings-section">
             <h3 className="settings-label" id="settings-language-label">
-              Idioma
+              {t("settings.language")}
             </h3>
             <div
               className="settings-radiogroup"

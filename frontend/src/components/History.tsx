@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MessageSquareDashed, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   deleteSession,
   listSessions,
@@ -16,6 +17,7 @@ export default function History({
 }: {
   onOpenSession: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<ChatSession[]>(() =>
     listSessions(),
   );
@@ -32,10 +34,7 @@ export default function History({
           <span className="state-icon">
             <MessageSquareDashed size={24} aria-hidden />
           </span>
-          <p className="state-text">
-            Todavía no hay conversaciones guardadas. Pregúntale algo al
-            asistente y aparecerán aquí.
-          </p>
+          <p className="state-text">{t("history.empty")}</p>
         </div>
       </div>
     );
@@ -43,7 +42,7 @@ export default function History({
 
   return (
     <div className="aux-view">
-      <h2 className="aux-title">Historial</h2>
+      <h2 className="aux-title">{t("history.title")}</h2>
       <ul className="history-list">
         {sessions.map((s) => (
           <li key={s.id} className="history-item">
@@ -55,14 +54,14 @@ export default function History({
               <span className="history-item-title">{s.title}</span>
               <span className="history-item-meta">
                 {fmt.format(new Date(s.updatedAt))} · {s.messages.length}{" "}
-                mensajes
+                {t("history.messages")}
               </span>
             </button>
             <button
               type="button"
               className="history-delete"
-              aria-label="Eliminar conversación"
-              title="Eliminar conversación"
+              aria-label={t("history.delete")}
+              title={t("history.delete")}
               onClick={() => remove(s.id)}
             >
               <Trash2 size={16} aria-hidden />

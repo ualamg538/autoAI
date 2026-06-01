@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -202,17 +203,19 @@ function TableBlockView({ block }: { block: TableBlock }) {
 }
 
 function ImageBlockView({ block }: { block: ImageBlock }) {
+  const { t } = useTranslation();
   const favorites = useFavorites();
   if (!block.foto_url) return null;
   const fav = favorites.includes(block.car_id);
+  const favLabel = fav ? t("favorite.remove") : t("favorite.add");
   return (
     <figure className="car-figure">
       <button
         type="button"
         className={`fav-btn${fav ? " active" : ""}`}
         aria-pressed={fav}
-        aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
-        title={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
+        aria-label={favLabel}
+        title={favLabel}
         onClick={() => toggleFavorite(block.car_id)}
       >
         <Heart size={16} aria-hidden fill={fav ? "currentColor" : "none"} />

@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Car, Menu, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Sidebar, { type ViewKey } from "./Sidebar";
 import SettingsDrawer from "./SettingsDrawer";
 
@@ -14,6 +15,7 @@ export default function Layout({
   onSelectView,
   children,
 }: LayoutProps) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
@@ -31,7 +33,7 @@ export default function Layout({
           <button
             type="button"
             className="icon-btn"
-            aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+            aria-label={collapsed ? t("layout.expandMenu") : t("layout.collapseMenu")}
             onClick={() => setCollapsed((c) => !c)}
           >
             <Menu size={20} aria-hidden />
@@ -39,13 +41,14 @@ export default function Layout({
         </div>
         <div className="topbar-center">
           <Car className="topbar-brand-icon" size={20} aria-hidden />
+          {/* La marca "AutoAI" no se traduce: literal fijo, no clave i18n. */}
           <span>AutoAI</span>
         </div>
         <div className="topbar-right">
           <button
             type="button"
             className="icon-btn"
-            aria-label="Ajustes"
+            aria-label={t("layout.settings")}
             ref={settingsBtnRef}
             aria-haspopup="dialog"
             aria-expanded={settingsOpen}

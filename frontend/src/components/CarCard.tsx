@@ -1,11 +1,14 @@
 import { Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Car } from "../lib/api";
 import { formatCombustible, formatNumero, formatPrecio } from "../lib/format";
 import { toggleFavorite, useFavorites } from "../lib/storage";
 
 export default function CarCard({ car }: { car: Car }) {
+  const { t } = useTranslation();
   const favorites = useFavorites();
   const fav = favorites.includes(car.id);
+  const favLabel = fav ? t("favorite.remove") : t("favorite.add");
 
   return (
     <article className="car-card">
@@ -13,8 +16,8 @@ export default function CarCard({ car }: { car: Car }) {
         type="button"
         className={`fav-btn${fav ? " active" : ""}`}
         aria-pressed={fav}
-        aria-label={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
-        title={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
+        aria-label={favLabel}
+        title={favLabel}
         onClick={() => toggleFavorite(car.id)}
       >
         <Heart size={16} aria-hidden fill={fav ? "currentColor" : "none"} />
@@ -35,19 +38,19 @@ export default function CarCard({ car }: { car: Car }) {
         <p className="car-card-price">{formatPrecio(car.precio)}</p>
         <dl className="car-card-specs">
           <div>
-            <dt>Combustible</dt>
+            <dt>{t("carCard.fuel")}</dt>
             <dd>{formatCombustible(car.combustible)}</dd>
           </div>
           <div>
-            <dt>Potencia</dt>
+            <dt>{t("carCard.power")}</dt>
             <dd>{formatNumero(car.potencia, " CV")}</dd>
           </div>
           <div>
-            <dt>Carrocería</dt>
-            <dd>{car.carroceria || "—"}</dd>
+            <dt>{t("carCard.bodywork")}</dt>
+            <dd>{car.carroceria || t("common.dash")}</dd>
           </div>
           <div>
-            <dt>Plazas</dt>
+            <dt>{t("carCard.seats")}</dt>
             <dd>{formatNumero(car.plazas)}</dd>
           </div>
         </dl>

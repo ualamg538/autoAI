@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { HeartOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fetchCar, type Car } from "../lib/api";
 import { useFavorites } from "../lib/storage";
 import CarCard from "./CarCard";
@@ -23,6 +24,7 @@ function CarGridSkeleton({ count }: { count: number }) {
 }
 
 export default function Favorites() {
+  const { t } = useTranslation();
   const ids = useFavorites();
   const [cache, setCache] = useState<Record<number, Car>>({});
 
@@ -58,10 +60,7 @@ export default function Favorites() {
           <span className="state-icon">
             <HeartOff size={24} aria-hidden />
           </span>
-          <p className="state-text">
-            No tienes coches guardados. Pulsa el corazón en cualquier coche del
-            catálogo o del chat para añadirlo.
-          </p>
+          <p className="state-text">{t("favorites.empty")}</p>
         </div>
       </div>
     );
@@ -74,7 +73,7 @@ export default function Favorites() {
 
   return (
     <div className="aux-view">
-      <h2 className="aux-title">Favoritos</h2>
+      <h2 className="aux-title">{t("favorites.title")}</h2>
       {cars.length === 0 ? (
         <CarGridSkeleton count={Math.min(ids.length, 8)} />
       ) : (
@@ -85,7 +84,7 @@ export default function Favorites() {
             ))}
           </div>
           {pending ? (
-            <p className="catalog-status">Cargando más favoritos…</p>
+            <p className="catalog-status">{t("favorites.loadingMore")}</p>
           ) : null}
         </>
       )}

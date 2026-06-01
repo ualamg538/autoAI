@@ -5,20 +5,21 @@ import {
   MessageSquare,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export type ViewKey = "assistant" | "catalog" | "history" | "favorites";
 
 interface SidebarItem {
   key: ViewKey;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 }
 
 const ITEMS: SidebarItem[] = [
-  { key: "assistant", label: "Asistente", icon: MessageSquare },
-  { key: "catalog", label: "Catálogo", icon: BookOpen },
-  { key: "history", label: "Historial", icon: Clock },
-  { key: "favorites", label: "Favoritos", icon: Heart },
+  { key: "assistant", labelKey: "sidebar.assistant", icon: MessageSquare },
+  { key: "catalog", labelKey: "sidebar.catalog", icon: BookOpen },
+  { key: "history", labelKey: "sidebar.history", icon: Clock },
+  { key: "favorites", labelKey: "sidebar.favorites", icon: Heart },
 ];
 
 interface SidebarProps {
@@ -32,25 +33,27 @@ export default function Sidebar({
   activeView,
   onSelectView,
 }: SidebarProps) {
+  const { t } = useTranslation();
   return (
     <nav
       className={`sidebar${collapsed ? " collapsed" : ""}`}
-      aria-label="Navegación principal"
+      aria-label={t("sidebar.nav")}
     >
       {ITEMS.map((item) => {
         const Icon = item.icon;
+        const label = t(item.labelKey);
         return (
           <button
             key={item.key}
             type="button"
             className={`sidebar-item${activeView === item.key ? " active" : ""}`}
             onClick={() => onSelectView(item.key)}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? label : undefined}
           >
             <span className="sidebar-item-icon" aria-hidden>
               <Icon size={16} />
             </span>
-            <span className="sidebar-item-label">{item.label}</span>
+            <span className="sidebar-item-label">{label}</span>
           </button>
         );
       })}
