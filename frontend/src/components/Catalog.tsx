@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { AlertCircle, SearchX } from "lucide-react";
 import {
   fetchCars,
   fetchFiltersMeta,
@@ -10,6 +11,24 @@ import { formatCombustible } from "../lib/format";
 import CarCard from "./CarCard";
 
 const PAGE_SIZE = 24;
+
+// Rejilla de placeholders mientras carga la primera página de resultados.
+function CarGridSkeleton() {
+  return (
+    <div className="car-grid" aria-hidden>
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="car-card-skeleton">
+          <div className="sk-media" />
+          <div className="sk-body">
+            <div className="sk-line sk-title" />
+            <div className="sk-line sk-sub" />
+            <div className="sk-line sk-price" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function parseNum(value: string): number | undefined {
   if (value.trim() === "") return undefined;
@@ -265,15 +284,32 @@ export default function Catalog() {
 
       <div className="catalog-results">
         {loading ? (
-          <p className="catalog-status">Cargando coches…</p>
+          <CarGridSkeleton />
         ) : error ? (
-          <p className="catalog-status error">
-            No se pudo cargar el catálogo. Inténtalo de nuevo.
-          </p>
+          <div className="state-block state-error">
+            <span className="state-icon">
+              <AlertCircle size={24} aria-hidden />
+            </span>
+            <p className="state-text">
+              No se pudo cargar el catálogo. Inténtalo de nuevo.
+            </p>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => reloadWith(applied, offset)}
+            >
+              Reintentar
+            </button>
+          </div>
         ) : cars.length === 0 ? (
-          <p className="catalog-status">
-            Ningún coche coincide con esos filtros.
-          </p>
+          <div className="state-block state-empty">
+            <span className="state-icon">
+              <SearchX size={24} aria-hidden />
+            </span>
+            <p className="state-text">
+              Ningún coche coincide con esos filtros.
+            </p>
+          </div>
         ) : (
           <>
             <div className="car-grid">

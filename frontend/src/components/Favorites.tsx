@@ -1,7 +1,26 @@
 import { useEffect, useState } from "react";
+import { HeartOff } from "lucide-react";
 import { fetchCar, type Car } from "../lib/api";
 import { useFavorites } from "../lib/storage";
 import CarCard from "./CarCard";
+
+// Rejilla de placeholders mientras se resuelven las fichas de los favoritos.
+function CarGridSkeleton({ count }: { count: number }) {
+  return (
+    <div className="car-grid" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="car-card-skeleton">
+          <div className="sk-media" />
+          <div className="sk-body">
+            <div className="sk-line sk-title" />
+            <div className="sk-line sk-sub" />
+            <div className="sk-line sk-price" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Favorites() {
   const ids = useFavorites();
@@ -35,9 +54,14 @@ export default function Favorites() {
   if (ids.length === 0) {
     return (
       <div className="aux-view">
-        <div className="aux-empty">
-          No tienes coches guardados. Pulsa el corazón en cualquier coche del
-          catálogo o del chat para añadirlo.
+        <div className="state-block state-empty">
+          <span className="state-icon">
+            <HeartOff size={24} aria-hidden />
+          </span>
+          <p className="state-text">
+            No tienes coches guardados. Pulsa el corazón en cualquier coche del
+            catálogo o del chat para añadirlo.
+          </p>
         </div>
       </div>
     );
@@ -52,7 +76,7 @@ export default function Favorites() {
     <div className="aux-view">
       <h2 className="aux-title">Favoritos</h2>
       {cars.length === 0 ? (
-        <p className="catalog-status">Cargando favoritos…</p>
+        <CarGridSkeleton count={Math.min(ids.length, 8)} />
       ) : (
         <>
           <div className="car-grid">

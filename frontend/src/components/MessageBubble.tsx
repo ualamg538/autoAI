@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Heart } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -41,7 +42,24 @@ interface AssistantBubbleProps {
 
 type MessageBubbleProps = UserBubbleProps | AssistantBubbleProps;
 
-const CHART_COLORS = ["#8ab6d6", "#9ac9a3", "#f2b880", "#c8a2d6", "#e0c36a"];
+// Lee una custom property de :root. Permite que los charts (que pintan en SVG y
+// no heredan `currentColor` como los iconos) sigan al tema activo. Cae a un
+// fallback cuando getComputedStyle no resuelve la variable (p. ej. en jsdom).
+function cssVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
+}
+
+const CHART_FALLBACKS = ["#5e85b8", "#5fa977", "#d8a14a", "#9b7bc0", "#cf7a6b"];
+
+function chartColors(): string[] {
+  return CHART_FALLBACKS.map((fallback, i) =>
+    cssVar(`--chart-${i + 1}`, fallback),
+  );
+}
 
 // Abre los enlaces markdown en pestaña nueva. Compartido por TextBlockView y las
 // celdas de tabla para no duplicar el override del ancla.
@@ -86,22 +104,27 @@ function ChartBlockView({ block }: { block: ChartBlock }) {
   const keys =
     block.keys ?? (firstRow ? Object.keys(firstRow).filter((k) => k !== xKey) : []);
 
+  // Colores y trazos leídos de los tokens para que los charts sigan al tema.
+  const colors = chartColors();
+  const gridStroke = cssVar("--border", "#e3e8ee");
+  const axisStroke = cssVar("--text-soft", "#5b6675");
+
   if (block.variant === "bar") {
     return (
       <div className="chart-block">
         {block.title ? <div className="chart-title">{block.title}</div> : null}
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={block.data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-            <XAxis dataKey={xKey} stroke="#6b6b6b" fontSize={12} />
-            <YAxis stroke="#6b6b6b" fontSize={12} />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis dataKey={xKey} stroke={axisStroke} fontSize={12} />
+            <YAxis stroke={axisStroke} fontSize={12} />
             <Tooltip />
             <Legend />
             {keys.map((k, i) => (
               <Bar
                 key={k}
                 dataKey={k}
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                fill={colors[i % colors.length]}
                 radius={[4, 4, 0, 0]}
               />
             ))}
@@ -116,7 +139,7 @@ function ChartBlockView({ block }: { block: ChartBlock }) {
       {block.title ? <div className="chart-title">{block.title}</div> : null}
       <ResponsiveContainer width="100%" height={300}>
         <RadarChart data={block.data}>
-          <PolarGrid stroke="#e5e5e5" />
+          <PolarGrid stroke={gridStroke} />
           <PolarAngleAxis dataKey={xKey} fontSize={12} />
           <PolarRadiusAxis fontSize={10} />
           <Tooltip />
@@ -126,8 +149,8 @@ function ChartBlockView({ block }: { block: ChartBlock }) {
               key={k}
               name={k}
               dataKey={k}
-              stroke={CHART_COLORS[i % CHART_COLORS.length]}
-              fill={CHART_COLORS[i % CHART_COLORS.length]}
+              stroke={colors[i % colors.length]}
+              fill={colors[i % colors.length]}
               fillOpacity={0.35}
             />
           ))}
@@ -192,7 +215,7 @@ function ImageBlockView({ block }: { block: ImageBlock }) {
         title={fav ? "Quitar de favoritos" : "Guardar en favoritos"}
         onClick={() => toggleFavorite(block.car_id)}
       >
-        {fav ? "❤️" : "🤍"}
+        <Heart size={16} aria-hidden fill={fav ? "currentColor" : "none"} />
       </button>
       <img src={block.foto_url} alt={block.caption ?? ""} loading="lazy" />
       {block.caption ? <figcaption>{block.caption}</figcaption> : null}

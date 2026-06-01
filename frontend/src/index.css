@@ -1,21 +1,130 @@
-:root {
-  --bg: #ffffff;
-  --bg-soft: #f5f5f5;
-  --bg-hover: #ececec;
-  --border: #e5e5e5;
-  --border-strong: #d4d4d4;
-  --text: #1a1a1a;
-  --text-soft: #6b6b6b;
-  --accent: #111111;
-  --accent-hover: #000000;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --chart-blue: #8ab6d6;
-  --chart-green: #9ac9a3;
-  --chart-orange: #f2b880;
+/* ============================================================
+   Design tokens
+   Tema claro en :root (por defecto). Tema oscuro en
+   [data-theme="dark"] — definido pero NO activado por defecto
+   (la app arranca en claro; el toggle se cablea más adelante).
+   ============================================================ */
 
+:root {
+  /* ----- Color: neutros ----- */
+  --bg: #ffffff;
+  --bg-soft: #f4f6f8;
+  --bg-hover: #eaeef3;
+  --border: #e3e8ee;
+  --border-strong: #cdd5de;
+  --text: #1c2733;
+  --text-soft: #5b6675;
+
+  /* ----- Color: acento (azul pizarra) ----- */
+  --accent: #2f5d8a;
+  --accent-hover: #264c72;
+  --accent-contrast: #ffffff;
+  --accent-soft: #eaf1f8;
+
+  /* ----- Color: semánticos ----- */
+  --success: #2f7a4d;
+  --success-soft: #e9f5ee;
+  --warning: #8a5a00;
+  --warning-soft: #fbf3e2;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+
+  /* ----- Color: charts (una sola fuente; se leen desde JS) ----- */
+  --chart-1: #5e85b8;
+  --chart-2: #5fa977;
+  --chart-3: #d8a14a;
+  --chart-4: #9b7bc0;
+  --chart-5: #cf7a6b;
+
+  /* ----- Sombras ----- */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.12);
+
+  /* ----- Tipografía ----- */
+  --font-scale: 1; /* gancho para el panel de accesibilidad (multiplicará luego) */
+  --text-base: 1rem;
+  --fs-xs: 0.6875rem; /* 11px */
+  --fs-sm: 0.75rem; /* 12px */
+  --fs-md: 0.8125rem; /* 13px */
+  --fs-base: 0.875rem; /* 14px */
+  --fs-lg: 0.9375rem; /* 15px */
+  --fs-18: 1.125rem; /* 18px */
+  --fs-xl: 1rem; /* 16px */
+  --fs-2xl: 1.25rem; /* 20px */
+  --fs-3xl: 1.75rem; /* 28px */
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ----- Espaciado (base 4px) ----- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* ----- Radios ----- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* ----- Transición compartida ----- */
+  --transition: 150ms ease;
+}
+
+[data-theme="dark"] {
+  /* ----- Color: neutros ----- */
+  --bg: #14181d;
+  --bg-soft: #1b2027;
+  --bg-hover: #232b35;
+  --border: #2a323d;
+  --border-strong: #3a444f;
+  --text: #e6e9ee;
+  --text-soft: #9aa4b2;
+
+  /* ----- Color: acento ----- */
+  --accent: #6d97c9;
+  --accent-hover: #87aad6;
+  --accent-contrast: #0e1216;
+  --accent-soft: #1d2b3b;
+
+  /* ----- Color: semánticos ----- */
+  --success: #5fb87f;
+  --success-soft: #16271d;
+  --warning: #d6a44e;
+  --warning-soft: #2a2113;
+  --danger: #e8867c;
+  --danger-soft: #2e1815;
+
+  /* ----- Color: charts (variantes algo más claras) ----- */
+  --chart-1: #7ba3d4;
+  --chart-2: #79c195;
+  --chart-3: #e2b86b;
+  --chart-4: #b394d9;
+  --chart-5: #e0978a;
+
+  /* ----- Sombras (más opacas sobre fondo oscuro) ----- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+html {
+  font-size: 100%; /* 16px; escalable desde aquí por el panel de ajustes */
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
     Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-size: var(--text-base);
   color: var(--text);
   background: var(--bg);
   line-height: 1.5;
@@ -72,7 +181,7 @@ input {
   align-items: center;
   justify-content: space-between;
   height: 56px;
-  padding: 0 16px;
+  padding: 0 var(--sp-4);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -82,7 +191,7 @@ input {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   width: 80px;
 }
 
@@ -93,9 +202,13 @@ input {
 .topbar-center {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 16px;
+  gap: var(--sp-2);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xl);
+}
+
+.topbar-center .topbar-brand-icon {
+  color: var(--accent);
 }
 
 .icon-btn {
@@ -104,10 +217,10 @@ input {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  font-size: 18px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-18);
   color: var(--text);
-  transition: background 150ms ease;
+  transition: background var(--transition);
 }
 
 .icon-btn:hover {
@@ -126,10 +239,10 @@ input {
   width: 150px;
   background: var(--bg);
   border-right: 1px solid var(--border);
-  padding: 12px 8px;
+  padding: var(--sp-3) var(--sp-2);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
   transition: width 200ms ease;
   flex-shrink: 0;
   overflow: hidden;
@@ -143,11 +256,11 @@ input {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: var(--sp-2) 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
   color: var(--text);
-  transition: background 150ms ease;
+  transition: background var(--transition), color var(--transition);
   white-space: nowrap;
   text-align: left;
   width: 100%;
@@ -158,16 +271,18 @@ input {
 }
 
 .sidebar-item.active {
-  background: var(--bg-soft);
-  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
 }
 
 .sidebar-item-icon {
-  font-size: 16px;
+  font-size: var(--fs-xl);
   flex-shrink: 0;
   width: 20px;
   display: inline-flex;
   justify-content: center;
+  align-items: center;
 }
 
 .sidebar.collapsed .sidebar-item-label {
@@ -191,7 +306,151 @@ input {
   align-items: center;
   justify-content: center;
   color: var(--text-soft);
-  font-size: 18px;
+  font-size: var(--fs-18);
+}
+
+/* ---------- Estados reutilizables (carga / vacío / error) ---------- */
+
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  text-align: center;
+  padding: var(--sp-6);
+  color: var(--text-soft);
+}
+
+.state-block .state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+}
+
+.state-block .state-text {
+  font-size: var(--fs-lg);
+  max-width: 32rem;
+  margin: 0;
+}
+
+.state-empty .state-icon {
+  background: var(--bg-hover);
+  color: var(--text-soft);
+}
+
+.state-error .state-icon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.state-error .state-text {
+  color: var(--danger);
+}
+
+.state-loading .state-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Centra el bloque cuando ocupa toda la vista auxiliar */
+.aux-view .state-block {
+  height: 100%;
+}
+
+/* ---------- Skeletons ---------- */
+
+.car-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.car-card-skeleton .sk-media {
+  aspect-ratio: 16 / 10;
+}
+
+.car-card-skeleton .sk-body {
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.sk-line {
+  height: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.sk-line.sk-title {
+  width: 70%;
+  height: 14px;
+}
+
+.sk-line.sk-sub {
+  width: 90%;
+}
+
+.sk-line.sk-price {
+  width: 40%;
+  height: 16px;
+  margin-top: var(--sp-1);
+}
+
+.skeleton,
+.sk-media,
+.sk-line {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-hover);
+}
+
+.skeleton::after,
+.sk-media::after,
+.sk-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  animation: shimmer 1.4s ease infinite;
+}
+
+[data-theme="dark"] .skeleton::after,
+[data-theme="dark"] .sk-media::after,
+[data-theme="dark"] .sk-line::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after,
+  .sk-media::after,
+  .sk-line::after {
+    animation: none;
+  }
 }
 
 /* ---------- Chat Hero (empty state) ---------- */
@@ -202,13 +461,13 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 24px;
+  gap: var(--sp-6);
+  padding: var(--sp-6);
 }
 
 .chat-hero-title {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-bold);
   text-align: center;
   line-height: 1.25;
   margin: 0;
@@ -218,7 +477,7 @@ input {
 .chat-hero-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-3);
   align-items: center;
   width: 100%;
   max-width: 500px;
@@ -227,15 +486,15 @@ input {
 .chat-hero-textarea {
   width: 100%;
   min-height: 90px;
-  padding: 14px 16px;
+  padding: var(--sp-4) var(--sp-4);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   resize: vertical;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   outline: none;
-  transition: border-color 150ms ease;
+  transition: border-color var(--transition);
 }
 
 .chat-hero-textarea:focus {
@@ -243,16 +502,20 @@ input {
 }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
   background: var(--accent);
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 150ms ease;
+  color: var(--accent-contrast);
+  padding: 10px var(--sp-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  transition: background var(--transition);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
@@ -273,10 +536,10 @@ input {
 .chat-stream {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 24px 16px;
+  padding: var(--sp-6) var(--sp-6) var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
 .chat-stream-inner {
@@ -285,7 +548,7 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
 .msg {
@@ -300,8 +563,8 @@ input {
 
 .msg.user .msg-content {
   background: var(--bg);
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 10px var(--sp-4);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   max-width: 75%;
   white-space: pre-wrap;
@@ -329,47 +592,47 @@ input {
 .msg.ai .msg-content ul,
 .msg.ai .msg-content ol {
   margin: 0 0 10px;
-  padding-left: 24px;
+  padding-left: var(--sp-6);
 }
 
 .msg.ai .msg-content li {
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-1);
 }
 
 .msg.ai .msg-content strong {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .msg.ai.error .msg-content {
-  color: #b54040;
+  color: var(--danger);
 }
 
 /* Markdown tables */
 .md-table-wrap {
   overflow-x: auto;
-  margin: 8px 0 12px;
+  margin: var(--sp-2) 0 var(--sp-3);
 }
 
 .md-table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 13px;
+  font-size: var(--fs-md);
   background: var(--bg);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
 
 .md-table th,
 .md-table td {
-  padding: 8px 12px;
+  padding: var(--sp-2) var(--sp-3);
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
 .md-table th {
   background: var(--bg-soft);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .md-table tr:last-child td {
@@ -378,35 +641,35 @@ input {
 
 /* Charts */
 .chart-block {
-  margin: 12px 0;
-  padding: 16px;
+  margin: var(--sp-3) 0;
+  padding: var(--sp-4);
   background: var(--bg);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
 .chart-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 12px;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  margin: 0 0 var(--sp-3);
   color: var(--text);
 }
 
 .chart-error {
-  color: #b54040;
-  font-size: 13px;
-  background: #fff4f4;
-  padding: 8px 12px;
+  color: var(--danger);
+  font-size: var(--fs-md);
+  background: var(--danger-soft);
+  padding: var(--sp-2) var(--sp-3);
   border-radius: 6px;
 }
 
 /* Car images */
 .msg.ai .car-figure {
   position: relative;
-  margin: 12px 0;
+  margin: var(--sp-3) 0;
   padding: 0;
   background: var(--bg);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   max-width: 420px;
@@ -420,15 +683,15 @@ input {
 }
 
 .msg.ai .car-figure figcaption {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--text-soft);
-  padding: 8px 12px;
+  padding: var(--sp-2) var(--sp-3);
   border-top: 1px solid var(--border);
 }
 
 /* Input bar (conversation mode) */
 .chat-input-bar {
-  padding: 12px 24px 20px;
+  padding: var(--sp-3) var(--sp-6) var(--sp-5);
   display: flex;
   justify-content: center;
   background: transparent;
@@ -437,14 +700,15 @@ input {
 .chat-input-pill {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--sp-2);
   width: 100%;
   max-width: 760px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
-  border-radius: 24px;
-  padding: 8px 8px 8px 16px;
+  border-radius: var(--radius-pill);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);
   box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition);
 }
 
 .chat-input-pill:focus-within {
@@ -457,7 +721,7 @@ input {
   outline: none;
   resize: none;
   background: transparent;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   max-height: 160px;
   min-height: 24px;
@@ -470,15 +734,15 @@ input {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--accent);
-  color: #fff;
-  font-size: 16px;
+  color: var(--accent-contrast);
+  font-size: var(--fs-xl);
   flex-shrink: 0;
-  transition: background 150ms ease;
+  transition: background var(--transition);
 }
 
-.send-btn:hover {
+.send-btn:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 
@@ -489,13 +753,13 @@ input {
 
 .typing-dots {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .typing-dots span {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--text-soft);
   animation: typing 1.2s infinite ease-in-out;
 }
@@ -524,14 +788,18 @@ input {
 /* ---------- Shared (Fase 5) ---------- */
 
 .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
   background: var(--bg);
   color: var(--text);
-  padding: 8px 14px;
+  padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: background 150ms ease;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -545,25 +813,31 @@ input {
 
 .fav-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: var(--sp-2);
+  right: var(--sp-2);
   z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text-soft);
   box-shadow: var(--shadow-sm);
-  font-size: 15px;
+  font-size: var(--fs-lg);
   line-height: 1;
-  transition: transform 120ms ease, background 120ms ease;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease;
 }
 
 .fav-btn:hover {
   transform: scale(1.1);
-  background: #fff;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.fav-btn.active {
+  color: var(--danger);
 }
 
 /* ---------- Chat toolbar ---------- */
@@ -571,7 +845,7 @@ input {
 .chat-toolbar {
   display: flex;
   justify-content: flex-end;
-  padding: 12px 24px 0;
+  padding: var(--sp-3) var(--sp-6) 0;
 }
 
 /* ---------- Auxiliary views (History / Favorites) ---------- */
@@ -579,16 +853,16 @@ input {
 .aux-view {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: var(--sp-6);
   width: 100%;
   max-width: 980px;
   margin: 0 auto;
 }
 
 .aux-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0 0 16px;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  margin: 0 0 var(--sp-4);
 }
 
 .aux-empty {
@@ -598,8 +872,8 @@ input {
   height: 100%;
   text-align: center;
   color: var(--text-soft);
-  font-size: 15px;
-  padding: 24px;
+  font-size: var(--fs-lg);
+  padding: var(--sp-6);
 }
 
 /* ---------- Car grid + cards ---------- */
@@ -607,7 +881,7 @@ input {
 .car-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
 .car-card {
@@ -616,14 +890,15 @@ input {
   flex-direction: column;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 150ms ease;
+  transition: box-shadow var(--transition), transform var(--transition);
 }
 
 .car-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .car-card-media {
@@ -640,20 +915,20 @@ input {
 }
 
 .car-card-body {
-  padding: 12px 14px 14px;
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .car-card-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
   margin: 0;
 }
 
 .car-card-sub {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-soft);
   margin: 0;
   overflow: hidden;
@@ -662,16 +937,16 @@ input {
 }
 
 .car-card-price {
-  font-size: 15px;
-  font-weight: 700;
-  margin: 6px 0 4px;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  margin: 6px 0 var(--sp-1);
 }
 
 .car-card-specs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px 12px;
-  margin: 4px 0 0;
+  gap: 6px var(--sp-3);
+  margin: var(--sp-1) 0 0;
 }
 
 .car-card-specs div {
@@ -680,12 +955,12 @@ input {
 }
 
 .car-card-specs dt {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-soft);
 }
 
 .car-card-specs dd {
-  font-size: 13px;
+  font-size: var(--fs-md);
   margin: 0;
 }
 
@@ -697,29 +972,29 @@ input {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px 24px;
+  padding: var(--sp-5) var(--sp-6) var(--sp-6);
 }
 
 .catalog-filters {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 12px;
+  gap: var(--sp-3);
   align-items: end;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-5);
 }
 
 .filter-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .filter-field label {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-soft);
 }
 
@@ -728,10 +1003,11 @@ input {
   height: 36px;
   padding: 0 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
-  font-size: 13px;
+  font-size: var(--fs-md);
   outline: none;
+  transition: border-color var(--transition);
 }
 
 .filter-field select:focus,
@@ -741,7 +1017,7 @@ input {
 
 .filter-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-2);
   align-items: end;
 }
 
@@ -756,16 +1032,16 @@ input {
 }
 
 .catalog-status.error {
-  color: #b54040;
+  color: var(--danger);
 }
 
 .catalog-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 24px 0 8px;
-  font-size: 14px;
+  gap: var(--sp-4);
+  padding: var(--sp-6) 0 var(--sp-2);
+  font-size: var(--fs-base);
   color: var(--text-soft);
 }
 
@@ -777,27 +1053,32 @@ input {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sp-2);
 }
 
 .history-item {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--sp-2);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+
+.history-item:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .history-open {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-3);
   text-align: left;
-  transition: background 150ms ease;
+  transition: background var(--transition);
 }
 
 .history-open:hover {
@@ -805,23 +1086,28 @@ input {
 }
 
 .history-item-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
 }
 
 .history-item-meta {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-soft);
 }
 
 .history-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   flex-shrink: 0;
-  font-size: 15px;
+  color: var(--text-soft);
+  font-size: var(--fs-lg);
   border-left: 1px solid var(--border);
-  transition: background 150ms ease;
+  transition: background var(--transition), color var(--transition);
 }
 
 .history-delete:hover {
-  background: var(--bg-hover);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
