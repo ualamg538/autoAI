@@ -4,6 +4,12 @@
 // pero el stub deja la puerta abierta sin que el entorno reviente.
 import '@testing-library/jest-dom/vitest'
 
+// Inicializa i18next para los tests. El idioma inicial sale de prefs (vacías en
+// jsdom → "es"), así que t()/useTranslation() resuelven al español y las
+// aserciones sobre literales en castellano siguen siendo válidas. Sin este
+// import, format.ts (que usa i18n.t) devolvería las claves crudas.
+import './../lib/i18n'
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

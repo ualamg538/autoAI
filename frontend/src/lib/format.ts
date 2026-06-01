@@ -1,26 +1,23 @@
 // Helpers de presentación compartidos por Catálogo / Favoritos / tarjetas.
+//
+// No son componentes React, así que para traducir usan la instancia de i18next
+// directamente (i18n.t), no el hook useTranslation. Las etiquetas describen el
+// *valor del enum* de combustible para la UI; no son datos crudos del coche, así
+// que sí se localizan (el valor crudo enviado al backend, p. ej. "gasoleo", no
+// cambia).
 
-// `combustible` en BD usa el vocabulario canónico de normalized.py.
-// Aquí solo se traduce para mostrar; el valor enviado al backend no cambia.
-const COMBUSTIBLE_LABELS: Record<string, string> = {
-  gasolina: "Gasolina",
-  gasoleo: "Diésel",
-  gas: "Gas (GLP/GNC)",
-  electrico: "Eléctrico",
-  mhev_gasolina: "Microhíbrido gasolina",
-  mhev_gasoleo: "Microhíbrido diésel",
-  hev_gasolina: "Híbrido gasolina",
-  phev_gasolina: "Híbrido enchufable gasolina",
-  phev_gasoleo: "Híbrido enchufable diésel",
-};
+import i18n from "./i18n";
 
 export function formatCombustible(value: string | null | undefined): string {
-  if (!value) return "—";
-  return COMBUSTIBLE_LABELS[value] ?? value;
+  if (!value) return i18n.t("common.dash");
+  const key = `format.fuel.${value}`;
+  // Clave desconocida (enum nuevo aún sin traducir) → devuelve el valor crudo,
+  // no la clave i18n.
+  return i18n.exists(key) ? i18n.t(key) : value;
 }
 
 export function formatPrecio(value: number | null | undefined): string {
-  if (value == null) return "Precio no disponible";
+  if (value == null) return i18n.t("format.priceUnavailable");
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
     currency: "EUR",
@@ -32,6 +29,6 @@ export function formatNumero(
   value: number | null | undefined,
   sufijo = "",
 ): string {
-  if (value == null) return "—";
+  if (value == null) return i18n.t("common.dash");
   return `${new Intl.NumberFormat("es-ES").format(value)}${sufijo}`;
 }
