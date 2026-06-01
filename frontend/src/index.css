@@ -6,6 +6,10 @@
    ============================================================ */
 
 :root {
+  /* Indica al navegador que pinte los controles nativos (flecha del select,
+     spinners de los number, scrollbars) en su variante clara. */
+  color-scheme: light;
+
   /* ----- Color: neutros ----- */
   --bg: #ffffff;
   --bg-soft: #f4f6f8;
@@ -77,6 +81,9 @@
 }
 
 [data-theme="dark"] {
+  /* Variante oscura de los controles nativos (ver nota en :root). */
+  color-scheme: dark;
+
   /* ----- Color: neutros ----- */
   --bg: #14181d;
   --bg-soft: #1b2027;
@@ -161,7 +168,8 @@ button:focus-visible {
 }
 
 textarea,
-input {
+input,
+select {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
@@ -1005,9 +1013,17 @@ input {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--bg);
+  color: var(--text);
   font-size: var(--fs-md);
   outline: none;
   transition: border-color var(--transition);
+}
+
+/* La lista desplegable del <select> usa el tema del sistema si no se fuerza;
+   en oscuro quedaría texto negro sobre fondo claro. */
+.filter-field select option {
+  background: var(--bg);
+  color: var(--text);
 }
 
 .filter-field select:focus,
