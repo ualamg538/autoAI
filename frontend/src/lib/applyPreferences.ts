@@ -4,7 +4,7 @@
 // `PreferencesProvider` (en un `useEffect`) como el script anti-parpadeo de
 // `main.tsx`, que corre ANTES de montar React. Así no duplicamos el mapeo.
 
-import type { FontSizePref, Preferences, ThemePref } from "./storage";
+import type { FontSizePref, LanguagePref, Preferences, ThemePref } from "./storage";
 
 // Tamaño de fuente del <html>. Toda la tipografía está en `rem`, así que
 // escalar este valor escala la interfaz proporcionalmente.
@@ -27,10 +27,17 @@ export function applyFontSize(fontSize: FontSizePref): void {
   document.documentElement.style.fontSize = FONT_SIZE_PERCENT[fontSize];
 }
 
-/** Aplica tema y tamaño de fuente al `<html>` de forma síncrona. */
+export function applyLanguage(language: LanguagePref): void {
+  document.documentElement.lang = language;
+}
+
+/** Aplica tema, tamaño de fuente e idioma (atributo `lang`) al `<html>`. */
 export function applyPreferencesToDocument(prefs: Preferences): void {
   applyTheme(prefs.theme);
   applyFontSize(prefs.fontSize);
-  // El idioma no toca el documento todavía: sólo se persiste/expone en el
-  // contexto. El bloque de i18n lo consumirá más adelante.
+  // `lang` del documento. Como esta función la llama tanto main.tsx (antes de
+  // React, anti-FOUC) como el useEffect de PreferencesContext, el atributo
+  // queda correcto al arrancar y se actualiza al cambiar de idioma. La
+  // propagación a i18next la hace PreferencesContext (no aquí, que es puro).
+  applyLanguage(prefs.language);
 }

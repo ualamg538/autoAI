@@ -1,7 +1,7 @@
 // Contexto de preferencias de accesibilidad: centraliza tema, tamaño de fuente
-// e idioma, los persiste en localStorage (vía storage.ts) y aplica tema +
-// tamaño al <html>. El idioma sólo se persiste/expone por ahora (i18n vendrá
-// después).
+// e idioma, los persiste en localStorage (vía storage.ts) y los aplica al
+// <html> (tema + tamaño + lang). El idioma además se propaga a i18next desde
+// aquí: este efecto es la única fuente de verdad del cambio de idioma.
 //
 // El hook `usePreferences` vive en `usePreferences.ts` para no romper el fast
 // refresh (este fichero sólo debe exportar componentes; el contexto, al ser una
@@ -14,6 +14,7 @@ import {
   type Preferences,
 } from "./storage";
 import { applyPreferencesToDocument } from "./applyPreferences";
+import i18n from "./i18n";
 import {
   PreferencesContext,
   type PreferencesContextValue,
@@ -33,7 +34,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyPreferencesToDocument(prefs);
-    // TODO(i18n): el bloque de i18n llamará aquí a i18n.changeLanguage(prefs.language)
+    void i18n.changeLanguage(prefs.language);
   }, [prefs]);
 
   const value: PreferencesContextValue = {
