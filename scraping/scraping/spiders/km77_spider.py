@@ -15,7 +15,6 @@ class Km77Spider(scrapy.Spider):
         "AUTOTHROTTLE_MAX_DELAY": 3.0,
         "AUTOTHROTTLE_TARGET_CONCURRENCY": 8.0,
         "JOBDIR": "crawls/km77-1",
-        "ROBOTSTXT_OBEY": False,
         "DEFAULT_REQUEST_HEADERS": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
