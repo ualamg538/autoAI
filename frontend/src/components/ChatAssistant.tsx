@@ -149,6 +149,7 @@ export default function ChatAssistant({
             {t("chat.getAnswer")}
           </button>
         </form>
+        <p className="chat-disclaimer">{t("chat.disclaimer")}</p>
       </div>
     );
   }
@@ -225,6 +226,7 @@ export default function ChatAssistant({
             <ArrowUp size={18} aria-hidden />
           </button>
         </form>
+        <p className="chat-disclaimer">{t("chat.disclaimer")}</p>
       </div>
     </div>
   );

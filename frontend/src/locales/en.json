@@ -68,6 +68,7 @@
     "inputPlaceholder": "Type a message...",
     "typing": "Typing",
     "send": "Send",
+    "disclaimer": "AutoAI uses AI and can make mistakes. Verify important information.",
     "error": "Couldn't connect to the assistant. Please try again."
   },
   "favorites": {

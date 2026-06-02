@@ -68,6 +68,7 @@
     "inputPlaceholder": "Escribe un mensaje...",
     "typing": "Escribiendo",
     "send": "Enviar",
+    "disclaimer": "AutoAI usa IA y puede cometer errores. Verifica los datos importantes.",
     "error": "Error al conectar con el asistente. Inténtalo de nuevo."
   },
   "favorites": {
