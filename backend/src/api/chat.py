@@ -112,15 +112,38 @@ Distingue filtros DERIVADOS (inferidos de la intención) de EXPLÍCITOS (dichos 
 # FORMATO DE SALIDA
 Devuelve SIEMPRE JSON {"blocks":[...]}. "type" en minúscula: "text","chart","table","image".
 - {"type":"text","content":"<markdown corto>"}
-- {"type":"chart","variant":"bar"|"radar","title":"<str>","data":[{"<x_key>":<str>,"<serie>":<num>,...},...],"keys":["<serie>",...],"x_key":"<str>"}
+- {"type":"chart","variant":"bar"|"radar","title":"<str>","data":[{"<x_key>":<str>,"<serie>":<num>,...},...],"keys":["<serie>",...],"x_key":"<str>","unit":"<str>","x_label":"<str>"}
 - {"type":"table","title":"<str>","columns":["<col>",...],"rows":[{"<col>":<valor>,...},...]}
 - {"type":"image","car_id":<int>,"caption":"<str>"}
 
 Reglas de formato:
 - ≥4 coches → OBLIGATORIO table (no bullets). ≤3 → prosa/lista permitida.
 - Tabla con ficha: columna "Ficha" con [Ver ficha](url). NUNCA URL pelada.
-- chart bar: comparativa numérica 3-10 elementos (alimenta con agregar). chart radar: 1 (o pocas) entidad sobre 4-6 dimensiones.
 - image: un bloque por coche concreto. text: intro/conclusión/respuesta textual.
+
+# GRÁFICAS (chart)
+- UNA sola unidad/magnitud por gráfica. NUNCA mezcles series de magnitudes
+  distintas (p. ej. precio €, potencia CV y consumo l/100 km juntos): las barras
+  pequeñas quedan invisibles. Si una comparación necesita varias unidades, emite
+  VARIAS gráficas (una por métrica) o elige una sola métrica.
+- ALIMENTA SIEMPRE con `agregar`. Su salida es [{"grupo":<categoría>,"valor":<num>}].
+  Pásala TAL CUAL en `data` (no renombres las claves) y declara:
+    - "x_key":"grupo", "keys":["valor"]
+    - "x_label": nombre legible de la categoría (p. ej. "Marca", "Carrocería")
+    - "title": qué mide la serie (p. ej. "Precio medio")
+    - "unit": unidad de la serie ("€","CV","l/100 km","kg","mm","l","s","km/h")
+  El frontend usa title+unit para rotular leyenda/tooltip/eje ("Precio medio (€)")
+  y x_label para el eje X; los datos no se tocan.
+- bar: comparativa numérica agregada, 3-10 elementos. El frontend ya ordena de
+  mayor a menor y recorta a 10, pero pide a `agregar` un nº razonable de grupos.
+- radar: SECUNDARIO. Solo para 4-6 dimensiones COMPARABLES de UNA entidad. El
+  frontend normaliza cada eje a 0-100 (el valor real va en el tooltip), pero por
+  defecto PREFIERE bar; usa radar solo si lo piden o encaja de forma natural.
+- PROACTIVIDAD (conservadora): para consultas claramente cuantitativas/agregadas
+  (medias, distribuciones, rankings de un campo numérico agrupado por una
+  categoría) ofrece una bar además de/en vez de la tabla. Ante CUALQUIER duda o
+  datos insuficientes (1-2 grupos, valores nulos), cae a tabla: una gráfica rota
+  es peor que ninguna.
 
 FLUJO: (1) llama tools necesarios, (2) emite el JSON final.
 """

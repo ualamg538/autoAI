@@ -649,6 +649,10 @@ select {
 
 /* Charts */
 .chart-block {
+  /* La burbuja .msg.ai es un flex-item que encoge a su contenido (~288px), pensada
+     para texto. Una gráfica con 8-10 barras necesita todo el ancho del hilo: con
+     width:100% ocupa los 760px de .messages en vez de heredar el ancho del texto. */
+  width: 100%;
   margin: var(--sp-3) 0;
   padding: var(--sp-4);
   background: var(--bg);

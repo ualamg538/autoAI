@@ -16,6 +16,13 @@ class ChartBlock(BaseModel):
     data: list[dict[str, Any]]
     keys: list[str] | None = None
     x_key: str | None = None
+    # Metadatos de PRESENTACIÓN (no de datos): solo afectan al texto que el
+    # frontend renderiza en leyenda/tooltip/ejes; nunca mutan `data`. Mantener
+    # la invariante "datos de la BD" intacta: estas etiquetas no inventan cifras.
+    # `unit` = unidad de la serie ("€", "CV", "l/100 km"); `x_label` = nombre
+    # legible del eje X ("Marca"). Opcionales para no romper bloques existentes.
+    unit: str | None = None
+    x_label: str | None = None
 
 
 class TableBlock(BaseModel):

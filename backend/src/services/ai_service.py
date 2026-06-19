@@ -205,7 +205,11 @@ TOOLS: list[dict[str, Any]] = [
             "description": (
                 "Calcula una agregación (count, avg, min, max) sobre un campo "
                 "numérico, opcionalmente agrupando por una columna categórica. "
-                "Útil para alimentar gráficas (`ChartBlock`)."
+                "Devuelve [{grupo, valor}] ya ordenado por valor desc. Es la "
+                "fuente recomendada para una gráfica de barras (ChartBlock bar): "
+                "pasa la salida tal cual en `data` con x_key='grupo', "
+                "keys=['valor'] y rotula con x_label/title/unit. UNA sola métrica "
+                "(unidad) por gráfica."
             ),
             "parameters": {
                 "type": "object",

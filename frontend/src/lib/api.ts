@@ -17,6 +17,11 @@ export interface ChartBlock {
   data: Array<Record<string, unknown>>;
   keys?: string[] | null;
   x_key?: string | null;
+  // Metadatos de presentación (espejo de ChartBlock en backend/src/models/chat.py).
+  // Solo cambian el texto visible (leyenda/tooltip/eje); nunca mutan `data`.
+  // `unit` = unidad de la serie ("€", "CV"); `x_label` = nombre legible del eje X.
+  unit?: string | null;
+  x_label?: string | null;
 }
 
 export interface TableBlock {
