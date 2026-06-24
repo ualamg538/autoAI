@@ -605,17 +605,443 @@ prefijo \textbf{CU}.
     \label{fig:casos-uso-usuario}
 \end{figure}
 
-
-
 % ---------------------------------------------------------------------
 %  4. METODOLOGÍA Y PLANIFICACIÓN
 % ---------------------------------------------------------------------
 \chapter{Metodología y planificación}
+\label{cap:metodologia}
+
+Este capítulo describe cómo se ha desarrollado \emph{autoAI}: la metodología de
+trabajo adoptada, la planificación temporal en fases y su contraste con la
+ejecución real, las herramientas y el entorno empleados, y los mecanismos de
+control de versiones e integración continua. Por tratarse de un Trabajo de Fin de
+Grado realizado por una sola persona, la metodología se ha adaptado a ese
+contexto: se han mantenido las prácticas profesionales útiles para un proyecto
+individual (desarrollo incremental, control de versiones y automatización de las
+comprobaciones) y se han descartado las que presuponen un equipo, como las
+reuniones de coordinación o el reparto de roles.
+
+La planificación inicial, recogida en el documento de objetivos elaborado al
+comienzo del trabajo, no se siguió de forma rígida: a medida que se profundizó en
+el problema y se construyeron las primeras versiones, varias decisiones técnicas
+cambiaron. Por ese motivo, además del plan, el capítulo documenta las
+desviaciones respecto a él y las razones que las motivaron, que forman parte del
+aprendizaje del proyecto.
 
 \section{Metodología de desarrollo}
+\label{sec:met-metodologia}
+
+El desarrollo de \emph{autoAI} ha seguido una metodología incremental e
+iterativa, de inspiración ágil pero adaptada a un único desarrollador. En lugar
+de abordar el sistema completo de una vez, se construyó primero un producto mínimo
+viable (\emph{MVP}) centrado en la funcionalidad nuclear, el asistente
+conversacional que responde a partir de datos reales. Sobre esa base se añadieron
+después el catálogo, las visualizaciones, los datos del usuario en el navegador,
+la internacionalización y la accesibilidad. Cada incremento se desarrolló por
+completo (implementación, prueba y, cuando hizo falta, refactorización) antes de
+pasar al siguiente, de modo que en todo momento existiera una versión funcional
+del sistema.
+
+Esta elección responde a la naturaleza del trabajo. Por ser un proyecto
+exploratorio, en el que aspectos como la fiabilidad del modelo de lenguaje o la
+estructura real de los datos de la fuente no se conocían de antemano, una
+planificación cerrada en cascada habría sido frágil. El enfoque iterativo permitió
+validar pronto las hipótesis más arriesgadas (si el modelo era capaz de traducir
+lenguaje natural a filtros fiables, o qué atributos publica realmente
+\texttt{km77.com}) y corregir el rumbo a partir de lo aprendido, en vez de
+descubrir los problemas al final.
+
+\subsection{Principios y prácticas adoptadas}
+\label{sec:met-practicas}
+
+De las metodologías ágiles se han incorporado las prácticas que tienen sentido
+para un proyecto individual:
+
+\begin{description}
+  \item[Desarrollo guiado por incrementos verticales.] Cada nueva capacidad
+        atraviesa todas las capas afectadas del sistema (extracción, base de
+        datos, \emph{backend} y \emph{frontend}) antes de darse por terminada, en
+        lugar de completar una capa entera antes de empezar la siguiente. Así, el
+        catálogo, por ejemplo, se construyó como un incremento completo que va
+        desde la consulta SQL en el repositorio hasta la vista de React.
+
+  \item[Refactorización continua.] La estructura del código se ha ido mejorando
+        a lo largo del proyecto en lugar de congelarse. El historial de control
+        de versiones recoge numerosas reestructuraciones explícitas, como el
+        cambio de nombre del paquete \texttt{app} a \texttt{src}, la
+        reorganización de los modelos de datos o la sustitución del proxy directo
+        al modelo de lenguaje por un acceso controlado a través del
+        \emph{backend}.
+
+  \item[Pruebas como red de seguridad.] Las funcionalidades críticas
+        (normalización de datos, repositorio de coches, validación de las
+        respuestas del asistente y tolerancia a registros malformados en la
+        ingesta) se respaldaron con pruebas automatizadas que permiten
+        refactorizar con confianza (véase el Capítulo~\ref{cap:implementacion}).
+
+  \item[Integración continua.] Cada cambio empujado al repositorio dispara una
+        comprobación automática (\emph{lint}, comprobación de tipos, pruebas y
+        construcción de imágenes), de modo que las regresiones se detectan de
+        inmediato y no se acumulan. Esta práctica se detalla en la
+        Sección~\ref{sec:met-ci}.
+
+  \item[Mensajes de \emph{commit} estructurados.] Para mantener un historial
+        trazable se adoptó la convención \emph{Conventional Commits}, que prefija
+        cada mensaje con su tipo (\texttt{feat}, \texttt{fix}, \texttt{refactor},
+        \texttt{docs}, \texttt{build}, \texttt{ci}, \texttt{test}, \texttt{perf},
+        \texttt{chore}). Así, la intención de cada cambio queda explícita y la
+        evolución del proyecto resulta fácil de reconstruir.
+\end{description}
+
+\subsection{Gestión del cambio: desviaciones respecto al plan inicial}
+\label{sec:met-desviaciones}
+
+El plan inicial se entendió como una guía y no como un contrato. Al avanzar el
+trabajo, varias decisiones técnicas recogidas en el documento de objetivos se
+revisaron a la luz de lo aprendido. Las desviaciones más relevantes fueron:
+
+\begin{description}
+  \item[Sistema gestor de base de datos: de MySQL a PostgreSQL.] El documento
+        inicial preveía MySQL. Se optó por PostgreSQL por su soporte de índices
+        parciales, empleados para la consulta de versiones vigentes, y por su
+        mejor manejo de valores nulos y tipos, que encaja con un dominio en el que
+        muchos atributos de los vehículos pueden faltar en la fuente.
+
+  \item[Automatización del \emph{scraping}: de n8n a Scrapy programado.] El plan
+        contemplaba orquestar la extracción con la herramienta \emph{n8n}. En su
+        lugar se implementó un \emph{spider} con Scrapy, ejecutado de forma
+        periódica mediante una expresión \emph{cron} dentro del propio contenedor.
+        Esta decisión eliminó una dependencia externa pesada y permitió aprovechar
+        los mecanismos nativos de Scrapy (control de concurrencia,
+        \emph{auto-throttle}, reanudación de trabajos), más apropiados para un
+        \emph{scraping} responsable que un flujo de \emph{n8n}.
+
+  \item[Número de fuentes de datos: de varias a una sola.] El objetivo inicial
+        hablaba de \emph{scraping} de varias webs. El trabajo se concentró en una
+        única fuente, \texttt{km77.com}, por ser la referencia española en
+        información técnica de automóviles y ofrecer datos completos y homogéneos.
+        Limitar el número de fuentes permitió invertir el esfuerzo en la calidad
+        de la normalización en vez de en la integración de orígenes heterogéneos.
+
+  \item[Modelo de datos: de un esquema con opiniones a una única tabla
+        normalizada.] El boceto inicial de base de datos incluía tablas de
+        \texttt{marca}, \texttt{combustible} y \texttt{opinion} (reseñas de
+        usuarios) relacionadas con la tabla de coches. En la implementación, el
+        modelo se simplificó a una sola tabla \texttt{cars} con las versiones ya
+        normalizadas, y se descartó la recolección de opiniones. El motivo fue
+        doble: las opiniones eran datos de calidad y disponibilidad inciertas que
+        no resultaban esenciales para el sistema, y una tabla desnormalizada
+        simplifica las consultas que el modelo de lenguaje genera a través de sus
+        herramientas.
+
+  \item[Alcance de la interacción: hacia un asistente conversacional con
+        \emph{tool calling}.] El planteamiento inicial describía un flujo lineal
+        (traducir la consulta a filtros, consultar la base de datos y redactar una
+        respuesta). La implementación derivó hacia una arquitectura de \emph{tool
+        calling}, en la que el modelo decide en cada iteración qué herramientas
+        invocar (búsqueda, ficha, comparación o agregación) hasta reunir datos
+        suficientes para responder. Este cambio, surgido de la experimentación,
+        mejoró la calidad y la fiabilidad de las respuestas.
+\end{description}
+
+La Tabla~\ref{tab:plan-vs-real} resume estas desviaciones, con la decisión
+recogida en el documento de objetivos, la finalmente implementada y su motivo
+principal.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.6cm}p{2.6cm}p{2.7cm}p{4.0cm}}
+\hline
+\textbf{Aspecto} & \textbf{Plan inicial} & \textbf{Implementación} & \textbf{Motivo del cambio} \\
+\hline
+Sistema gestor de base de datos &
+MySQL &
+PostgreSQL &
+Índices parciales para versiones vigentes y mejor manejo de nulos y tipos. \\
+
+Automatización del \emph{scraping} &
+n8n &
+Scrapy con \emph{cron} en contenedor &
+Elimina una dependencia externa y aprovecha el control de carga y la reanudación nativos de Scrapy. \\
+
+Fuentes de datos &
+Varias webs &
+Una sola (\texttt{km77.com}) &
+Concentrar el esfuerzo en la calidad de la normalización sobre datos homogéneos. \\
+
+Modelo de datos &
+Tablas \texttt{marca}, \texttt{combustible} y \texttt{opinion} &
+Tabla única \texttt{cars} desnormalizada &
+Las opiniones no eran esenciales y una tabla única simplifica las consultas del modelo. \\
+
+Interacción con el modelo &
+Flujo lineal (traducir, consultar, redactar) &
+\emph{Tool calling} iterativo &
+El modelo decide qué herramientas invocar, mejorando calidad y fiabilidad. \\
+\hline
+\end{tabular}
+\caption{Principales desviaciones entre la planificación inicial y la
+implementación final.}
+\label{tab:plan-vs-real}
+\end{table}
 
 \section{Planificación temporal y fases del proyecto}
+\label{sec:met-planificacion}
+
+La planificación se estructuró en siete fases secuenciales, cada una con sus
+objetivos y una fecha límite orientativa. La Fase~0 se dedicó a la planificación
+(definición del objetivo, software, herramientas, boceto de interfaz y esquema
+preliminar de datos); las siguientes recorren el recorrido del dato y del
+producto: obtención y limpieza de datos (Fase~1), base de datos (Fase~2),
+inteligencia artificial y análisis (Fase~3), interfaz de usuario (Fase~4),
+mejoras y despliegue (Fase~5) y, por último, redacción de la memoria y preparación
+de la defensa (Fase~6).
+
+La Tabla~\ref{tab:fases} resume las fases, sus tareas principales y las fechas
+límite previstas en la planificación inicial.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{1.2cm}p{8.6cm}p{2.4cm}}
+\hline
+\textbf{Fase} & \textbf{Tareas principales} & \textbf{Fecha límite} \\
+\hline
+Fase 0 & Planificación: objetivo, software, herramientas, boceto de interfaz y de
+         base de datos. & 10/12/2025 \\
+Fase 1 & Recopilación y limpieza de datos: elección de fuentes, \emph{scraping},
+         normalización y pruebas. & 24/12/2025 \\
+Fase 2 & Base de datos: diseño, conexión con la aplicación, almacenamiento de
+         datos normalizados y pruebas. & 10/01/2026 \\
+Fase 3 & IA y análisis: consulta de datos, modelos de recomendación, entrada de
+         consultas y pruebas. & 03/02/2026 \\
+Fase 4 & Interfaz de usuario: interfaz web funcional conectada al \emph{backend}
+         y pruebas. & 05/03/2026 \\
+Fase 5 & Mejoras: automatización del \emph{scraping}, gráficas y tablas,
+         contenerización, despliegue y pruebas completas. & 15/04/2026 \\
+Fase 6 & Memoria y defensa: redacción de la memoria y preparación de la
+         presentación. & 18/05/2026 \\
+\hline
+\end{tabular}
+\caption{Fases del proyecto y fechas límite según la planificación inicial.}
+\label{tab:fases}
+\end{table}
+
+
+\subsection{Plan previsto frente a ejecución real}
+\label{sec:met-real}
+
+La ejecución real respetó el orden global de las fases pero no su calendario
+exacto. El enfoque iterativo provocó que algunas fases se solaparan en el tiempo
+en lugar de sucederse de forma estanca, y que el grueso del trabajo se concentrara
+entre enero y junio de~2026. Las observaciones más destacables son:
+
+\begin{itemize}
+  \item La \textbf{planificación} (Fase~0) y la primera puesta en marcha del
+        repositorio se desarrollaron entre el 20 de noviembre y el 15 de
+        diciembre de~2025, con la definición del proyecto y la inicialización de
+        los esqueletos de \emph{backend} y \emph{frontend}.
+
+  \item La \textbf{obtención y normalización de datos} (Fase~1) se prolongó desde
+        el 17 de enero hasta el 14 de abril de~2026 y fue la fase más extensa del
+        proyecto. En ese periodo se construyó el entorno de Scrapy y el
+        \emph{spider}, se mejoró la cantidad y la calidad de los datos extraídos,
+        se añadió el análisis de variabilidad entre versiones y se implementó la
+        normalización (combustibles, electrificación, capacidad de los eléctricos,
+        etc.). Su duración, mayor de lo previsto, se explica por la complejidad
+        real de los datos de la fuente.
+
+  \item La \textbf{base de datos} (Fase~2), entre el 25 de marzo y el 19 de abril
+        de~2026, se solapó con el tramo final de la fase de datos. En ella se
+        diseñó el esquema, se conectó la aplicación, se automatizó el
+        \emph{scraper} y se habilitó el envío de los datos normalizados a la base
+        de datos.
+
+  \item La \textbf{interfaz de usuario} (Fase~4) comenzó el 20 de abril de~2026
+        con una primera versión funcional del cliente y se extendió hasta el 9 de
+        mayo, por delante en parte de la fase de inteligencia artificial.
+
+  \item La \textbf{inteligencia artificial} (Fase~3), entre el 4 de mayo y el 12
+        de junio de~2026, se entrelazó con el final de la fase de interfaz. En ella
+        se construyó el \emph{pipeline} de consultas con el modelo de lenguaje y se
+        sucedió un periodo intenso de refinamiento (variación de respuestas,
+        tratamiento de híbridos, agrupación de carrocerías, ajuste del
+        \emph{prompt}, etc.).
+
+  \item Las \textbf{mejoras} (Fase~5), entre el 30 de mayo y el 20 de junio
+        de~2026, abarcaron un amplio conjunto de tareas: endurecimiento de la
+        seguridad (restricción de rutas en la ingesta, limitación de tasa y clave
+        de API opcionales, eliminación del proxy inseguro al modelo), pruebas de
+        \emph{backend} y \emph{frontend}, integración continua, rediseño de la
+        interfaz, internacionalización, accesibilidad y mejora de las gráficas.
+
+  \item La \textbf{memoria} (Fase~6) se redactó en la fase final del proyecto,
+        entre el 17 y el 24 de junio de~2026.
+\end{itemize}
+
+El desplazamiento del calendario respecto al plan inicial se debió a dos causas:
+la fase de datos resultó más laboriosa de lo estimado y el componente de
+inteligencia artificial, por su carácter exploratorio, exigió varias iteraciones
+de ajuste que no eran previsibles al planificar. Este reajuste no fue un fallo de
+planificación, sino una muestra del valor de la metodología iterativa, que
+permitió absorber la incertidumbre sin comprometer el resultado.
+
+% Diagrama de Gantt que represente las siete fases (Fase 0 a Fase 6) sobre
+% una línea temporal de diciembre de 2025 a junio de 2026, mostrando la duración
+% planificada de cada fase y, opcionalmente, superponiendo en otro color la
+% ejecución real para evidenciar los solapamientos y desplazamientos descritos
+% en el texto.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/autoAI-ene.png}
+    \caption{Diagrama de Gantt (Nov -  Ene).}
+    \label{fig:gantt-ene}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/autoAI-mar.png}
+    \caption{Diagrama de Gantt (Ene -  Mar).}
+    \label{fig:gantt-mar}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/autoAI-may.png}
+    \caption{Diagrama de Gantt (Mar -  May).}
+    \label{fig:gantt-may}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/autoAI-jun.png}
+    \caption{Diagrama de Gantt (May -  Jun).}
+    \label{fig:gantt-jun}
+\end{figure}
 
 \section{Herramientas y entorno de trabajo}
+\label{sec:met-herramientas}
+
+El proyecto se ha desarrollado con herramientas libres y de uso extendido,
+elegidas por su madurez y su buena integración entre sí. La
+Tabla~\ref{tab:herramientas} las clasifica por su función dentro del proyecto.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4.2cm}p{8.0cm}}
+\hline
+\textbf{Ámbito} & \textbf{Herramienta / tecnología} \\
+\hline
+Editor de código & Visual Studio Code \\
+Control de versiones & Git, con repositorio remoto alojado en GitHub \\
+Lenguajes & Python (\emph{backend} y \emph{scraping}), TypeScript (\emph{frontend}) \\
+\emph{Backend} & FastAPI sobre Python 3.12 \\
+\emph{Frontend} & React 19 con TypeScript, empaquetado con Vite \\
+Base de datos & PostgreSQL 16 \\
+Gestión de base de datos & DBeaver (cliente SQL universal) \\
+Extracción de datos & Scrapy \\
+Programación periódica & \emph{supercronic} (ejecutor de \emph{cron} en contenedor) \\
+Contenerización & Docker y Docker Compose \\
+Servidor de estáticos & Nginx (sirve la SPA en producción) \\
+Modelo de lenguaje & API compatible con la de OpenAI \\
+Calidad de código (\emph{backend}) & Ruff (\emph{lint} y formato), Mypy (tipos) \\
+Calidad de código (\emph{frontend}) & ESLint, comprobación de tipos con \texttt{tsc} \\
+Pruebas & Pytest (\emph{backend}), Vitest y Testing Library (\emph{frontend}) \\
+Integración continua & GitHub Actions \\
+Redacción de la memoria & \LaTeX{} \\
+\hline
+\end{tabular}
+\caption{Herramientas y tecnologías empleadas, clasificadas por ámbito.}
+\label{tab:herramientas}
+\end{table}
+
+Respecto a las herramientas previstas en el documento inicial, el entorno se
+mantuvo en lo esencial (Visual Studio Code como editor, Git y GitHub para el
+control de versiones, y Docker para la contenerización), pero se sustituyeron las
+herramientas ligadas a las decisiones técnicas que evolucionaron: desaparecieron
+\emph{n8n} y \emph{MySQL Workbench}, al cambiar la automatización del
+\emph{scraping} y el sistema gestor de base de datos, y se incorporaron las
+herramientas de calidad (Ruff, Mypy, ESLint), de pruebas (Pytest, Vitest) y de
+integración continua que no figuraban en el plan original.
+
+El entorno de desarrollo se ha definido también con contenedores, de modo que la
+máquina del desarrollador solo necesita Docker para levantar el sistema completo.
+La configuración de Docker Compose distingue dos perfiles, desarrollo y
+producción, mediante ficheros de superposición
+(\texttt{docker-compose.override.yml} y \texttt{docker-compose.prod.yml}). El
+perfil de desarrollo monta el código fuente como volumen para habilitar la recarga
+en caliente y expone los puertos de cada servicio; el de producción construye
+imágenes optimizadas y delega el servicio de los estáticos en Nginx. Los detalles
+de esta infraestructura se exponen en el Capítulo~\ref{cap:implementacion}.
 
 \section{Control de versiones e integración continua}
+\label{sec:met-ci}
+
+El proyecto se ha gestionado con Git y un repositorio remoto en GitHub, que ha
+servido a la vez como copia de seguridad, registro trazable de la evolución del
+trabajo y disparador de la integración continua.
+
+\subsection{Estrategia de control de versiones}
+\label{sec:met-git}
+
+El flujo de trabajo combinó el desarrollo sobre la rama principal con el uso de
+ramas de funcionalidad para los bloques de trabajo más voluminosos, que se
+integraron mediante \emph{pull requests}. El historial recoge, por ejemplo, ramas
+dedicadas al \emph{scraping} y al \emph{frontend} fusionadas a la rama principal
+cuando alcanzaron un estado estable. Sobre la rama principal se realizaron, además,
+\emph{commits} incrementales para correcciones, pruebas y mejoras menores.
+
+Los mensajes de \emph{commit} siguen la convención \emph{Conventional Commits},
+que da al historial una semántica uniforme y permite distinguir las nuevas
+funcionalidades (\texttt{feat}) de las correcciones (\texttt{fix}), las
+refactorizaciones (\texttt{refactor}), los cambios de construcción o
+infraestructura (\texttt{build}, \texttt{ci}, \texttt{chore}), la documentación
+(\texttt{docs}), las pruebas (\texttt{test}) y las mejoras de rendimiento
+(\texttt{perf}).
+
+\subsection{Integración continua con GitHub Actions}
+\label{sec:met-actions}
+
+Para que el código del repositorio se mantenga en buen estado y los errores no se
+acumulen, se configuró un flujo de integración continua con GitHub Actions
+(fichero \texttt{.github/workflows/ci.yml}) que se ejecuta de forma automática en
+cada \emph{push} a cualquier rama. El flujo se compone de tres trabajos:
+
+\begin{description}
+  \item[Trabajo de \emph{backend}.] Sobre Python 3.12, instala las dependencias y
+        ejecuta, en este orden: el análisis estático con Ruff (que bloquea la
+        construcción ante errores de \emph{lint}), la comprobación de tipos con
+        Mypy en modo gradual (informativa, no bloqueante) y la batería de pruebas
+        con Pytest junto con la medición de cobertura. Para que las pruebas de
+        integración dispongan de una base de datos real, el trabajo levanta un
+        \emph{service container} con PostgreSQL~16 y le apunta la cadena de
+        conexión. El informe de cobertura se publica como artefacto del flujo.
+
+  \item[Trabajo de \emph{frontend}.] Sobre Node.js~22, instala las dependencias de
+        forma reproducible (\texttt{npm ci}) y ejecuta el \emph{linter} (ESLint),
+        la construcción del proyecto (\texttt{tsc} más Vite, que incluye la
+        comprobación de tipos de TypeScript) y las pruebas con Vitest.
+
+  \item[Trabajo de Docker.] Supeditado a que los dos trabajos anteriores hayan
+        concluido con éxito, verifica que las imágenes de contenedor del
+        \emph{backend} y del \emph{frontend} se construyen correctamente, sin
+        publicarlas, lo que confirma que el sistema sigue siendo desplegable.
+\end{description}
+
+Así, cada cambio queda validado de forma automática antes de consolidarse, tanto
+en la calidad y corrección del código como en su comportamiento frente a las
+pruebas y en su capacidad de despliegue. Esta validación funciona como red de
+seguridad en un proyecto desarrollado de forma incremental por una sola persona.
+
+% Captura de pantalla de la interfaz de GitHub Actions mostrando una
+% ejecución correcta del flujo de CI con los tres trabajos (backend, frontend y
+% docker) en verde, para evidenciar el funcionamiento real de la integración
+% continua.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/github_actions_evidencia.png}
+    \caption{Evidencia de la ejecución del flujo de integración continua.}
+    \label{fig:github-actions-evidencia}
+\end{figure}
