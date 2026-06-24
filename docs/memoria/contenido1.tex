@@ -38,16 +38,573 @@
 %  3. ANÁLISIS DE REQUISITOS
 % ---------------------------------------------------------------------
 \chapter{Análisis de requisitos}
+\label{cap:requisitos}
+
+Este capítulo recoge el análisis de requisitos del sistema desarrollado,
+denominado \emph{autoAI}. Define qué debe hacer la aplicación, bajo qué
+restricciones de calidad ha de operar y cómo se traduce ese comportamiento en
+las interacciones que ofrece al usuario. Para que el análisis se corresponda
+con el sistema construido, los requisitos que se enuncian a continuación se han
+extraído tanto de los objetivos planteados en el Capítulo~\ref{sec:intro} como
+de la propia implementación: el catálogo y el asistente conversacional del
+cliente web, la API REST del backend, el modelo de datos relacional y el proceso
+de extracción y normalización de datos. Así, cada requisito es trazable a un
+componente real del sistema.
 
 \section{Descripción general del sistema}
+\label{sec:req-descripcion}
+
+\emph{autoAI} es una aplicación web cuyo propósito es ayudar a una persona no
+experta a encontrar y comparar vehículos del mercado español a partir de la
+información técnica y comercial publicada por el agregador \texttt{km77.com}. El
+sistema combina dos modos de uso complementarios. El primero es un
+\textbf{catálogo filtrable} convencional, en el que el usuario aplica criterios
+estructurados (marca, carrocería, combustible, rango de precio, potencia, etc.)
+y navega los resultados paginados. El segundo es un \textbf{asistente
+conversacional} basado en un modelo de lenguaje, al que el usuario puede
+dirigirse en lenguaje natural, incluso con peticiones vagas como «un coche para
+la familia» o «algo que gaste poco», y que responde con texto, tablas, gráficas
+e imágenes construidas a partir de datos reales de la base de datos.
+
+Desde el punto de vista arquitectónico, el sistema se organiza en cuatro
+componentes desplegados como contenedores independientes y orquestados con
+Docker Compose, tal como se describe en el fichero \texttt{docker-compose.yml}:
+
+\begin{itemize}
+  \item Un \textbf{servicio de extracción} (\emph{scraper}), implementado con
+        Scrapy, que recorre el sitio \texttt{km77.com} en cinco niveles
+        (marcas, modelos, submodelos, versiones y ficha técnica de cada
+        versión) y vuelca los datos en bruto.
+  \item Un \textbf{backend} desarrollado con FastAPI, que expone una API REST,
+        normaliza e ingiere los datos extraídos, sirve el catálogo y orquesta
+        las llamadas al modelo de lenguaje mediante una arquitectura de
+        \emph{tool calling}.
+  \item Una \textbf{base de datos} relacional PostgreSQL, con una única tabla
+        \texttt{cars} que almacena las versiones normalizadas.
+  \item Un \textbf{frontend} de tipo \emph{single-page application},
+        desarrollado con React y TypeScript, que ofrece la interfaz de usuario
+        (asistente, catálogo, favoritos, historial y ajustes de accesibilidad).
+\end{itemize}
+
+Un rasgo determinante para el análisis es que el sistema \textbf{no dispone de
+gestión de usuarios ni de autenticación de cuentas}. Toda la información propia
+del usuario (las conversaciones del historial, la lista de favoritos y las
+preferencias de accesibilidad) se persiste exclusivamente en el almacenamiento
+local del navegador (\texttt{localStorage}), como reflejan los módulos del
+cliente. Esta decisión, acorde con el alcance de un Trabajo de Fin de Grado,
+condiciona varios de los requisitos que se detallan más adelante.
+
+La organización interna de estos componentes, la red que los comunica y los
+flujos de datos entre ellos se describen en el diseño del sistema (véase la
+Figura~\ref{fig:arquitectura} del Capítulo~\ref{cap:diseno}).
 
 \section{Actores del sistema}
+\label{sec:req-actores}
+
+Al no existir cuentas de usuario, el conjunto de actores es reducido. Se
+distinguen actores humanos y actores externos de carácter automático.
+
+\begin{description}
+  \item[Usuario final.] Persona que interactúa con la aplicación web a través
+        del navegador. No necesita registrarse ni iniciar sesión: cualquier
+        visitante dispone de las mismas capacidades. Es el actor principal y
+        protagoniza la mayoría de los casos de uso (consultar el catálogo,
+        conversar con el asistente, gestionar favoritos e historial y ajustar
+        las preferencias de accesibilidad). No se contempla un rol de usuario
+        avanzado distinto del usuario general.
+
+  \item[Administrador / responsable del despliegue.] Persona encargada de
+        instalar, configurar y mantener el sistema. No interactúa con una
+        interfaz gráfica de administración, sino a través de la configuración
+        del entorno (variables de entorno, fichero \texttt{.env}, Docker
+        Compose) y de los procesos de extracción e ingesta de datos. Es quien
+        provee la clave de la API del modelo de lenguaje y quien puede activar
+        los mecanismos de protección opcionales del backend (limitación de
+        tasa y clave de API para el chat).
+
+  \item[Proceso de extracción de datos (\emph{scraper}).] Actor automático
+        que, de forma programada, recorre la fuente externa \texttt{km77.com},
+        obtiene los datos en bruto e invoca al backend para su normalización e
+        ingesta. Aunque forma parte del propio sistema, se modela como actor
+        porque actúa de manera autónoma frente a la API.
+
+  \item[Proveedor del modelo de lenguaje.] Servicio externo (API compatible
+        con la de OpenAI) al que el backend delega la generación de respuestas
+        del asistente. El sistema depende de él para el funcionamiento del
+        modo conversacional, pero no para el catálogo.
+
+  \item[Fuente de datos externa (\texttt{km77.com}).] Sitio web del que se
+        obtiene toda la información de los vehículos. Es un actor pasivo: no
+        ofrece una API, por lo que la obtención de datos se realiza mediante
+        \emph{web scraping}.
+\end{description}
+
 
 \section{Requisitos funcionales}
+\label{sec:req-funcionales}
+
+Los requisitos funcionales describen las capacidades que el sistema debe
+ofrecer. Se han agrupado por bloques funcionales coincidentes con los
+subsistemas reales de la aplicación. Cada requisito se identifica con el
+prefijo \textbf{RF} seguido de un número correlativo.
+
+\subsection{Catálogo y consulta estructurada}
+
+\begin{description}
+  \item[RF-01.] El sistema debe ofrecer un catálogo de vehículos paginado. La
+        paginación se realiza con un tamaño de página fijo y mediante
+        desplazamiento (\texttt{limit}/\texttt{offset}), permitiendo avanzar y
+        retroceder entre páginas.
+
+  \item[RF-02.] El sistema debe permitir filtrar el catálogo por, al menos, los
+        siguientes criterios: marca, modelo, tipo de combustible, carrocería,
+        tracción, transmisión, precio mínimo, precio máximo, potencia mínima y
+        número mínimo de plazas. Los filtros deben poder combinarse entre sí.
+
+  \item[RF-03.] El sistema debe proporcionar al cliente los valores disponibles
+        para los filtros categóricos (marcas, combustibles, carrocerías,
+        tracciones y transmisiones presentes en la base de datos), de modo que
+        la interfaz pueda construir los desplegables de filtrado sin valores
+        inexistentes.
+
+  \item[RF-04.] El sistema debe permitir consultar la ficha completa de un
+        vehículo concreto a partir de su identificador, devolviendo todos sus
+        atributos técnicos y comerciales.
+
+  \item[RF-05.] El sistema debe permitir comparar varios vehículos a la vez,
+        recuperando sus fichas completas a partir de una lista de
+        identificadores y preservando el orden solicitado.
+
+  \item[RF-06.] El sistema debe ordenar por defecto los resultados del catálogo
+        mostrando primero las versiones más recientes, de forma determinista
+        para que la paginación sea estable.
+\end{description}
+
+\subsection{Asistente conversacional}
+
+\begin{description}
+  \item[RF-07.] El sistema debe ofrecer un asistente conversacional capaz de
+        interpretar preguntas formuladas en lenguaje natural sobre vehículos y
+        responderlas apoyándose en los datos reales almacenados.
+
+  \item[RF-08.] El asistente debe mantener el contexto de la conversación,
+        admitiendo varios turnos de mensajes de usuario y de respuesta del
+        sistema dentro de una misma sesión.
+
+  \item[RF-09.] El asistente nunca debe inventar datos de los vehículos
+        (precios, potencias, consumos, fechas o identificadores): toda cifra
+        que ofrezca debe proceder de una consulta a la base de datos realizada
+        a través de las herramientas internas (\emph{tools}) de búsqueda,
+        consulta de ficha, comparación y agregación.
+
+  \item[RF-10.] El asistente debe ser capaz de interpretar intenciones vagas o
+        implícitas (por ejemplo, «coche para la familia», «algo deportivo»,
+        «que gaste poco» o «para ciudad») traduciéndolas a filtros concretos
+        sobre los atributos disponibles, y de buscar siempre antes de
+        responder.
+
+  \item[RF-11.] El asistente debe estructurar sus respuestas en bloques
+        diferenciados, que pueden ser texto, tablas, gráficas (de barras o
+        radar) e imágenes de vehículos, de manera que la interfaz pueda
+        representarlas de forma rica.
+
+  \item[RF-12.] El asistente debe poder generar visualizaciones (gráficas)
+        a partir de agregaciones (recuento, media, mínimo y máximo) sobre
+        campos numéricos, opcionalmente agrupadas por una dimensión categórica
+        (por ejemplo, precio medio por marca o por carrocería).
+
+  \item[RF-13.] Cuando se solicite un atributo que el sistema no puede filtrar
+        (por ejemplo, techo solar, color, etiqueta medioambiental u otras
+        características no presentes en el modelo de datos), el asistente debe
+        informar de esa limitación, indicar la dimensión soportada más cercana
+        y, aun así, ejecutar la búsqueda con el resto de criterios válidos en
+        lugar de rendirse.
+
+  \item[RF-14.] El asistente debe poder responder en español o en inglés según
+        la preferencia de idioma del usuario, traduciendo únicamente la prosa
+        generada y manteniendo intactos los datos del vehículo (marcas,
+        modelos, especificaciones y valores técnicos).
+
+  \item[RF-15.] Ante una respuesta del modelo que no se ajuste al formato
+        estructurado esperado, el sistema debe reintentar la generación y, si
+        aun así falla, devolver un mensaje de error controlado en lugar de una
+        respuesta inválida.
+\end{description}
+
+\subsection{Datos del usuario en el navegador}
+
+\begin{description}
+  \item[RF-16.] El sistema debe permitir al usuario marcar y desmarcar
+        vehículos como favoritos, y consultar en cualquier momento la lista de
+        sus favoritos, persistida localmente en el navegador.
+
+  \item[RF-17.] El sistema debe guardar automáticamente las conversaciones del
+        usuario como sesiones de historial, permitiéndole consultarlas,
+        reabrirlas y eliminarlas, así como iniciar nuevas conversaciones.
+
+  \item[RF-18.] El sistema debe ofrecer ajustes de accesibilidad y preferencia
+        (tema claro u oscuro, tamaño de fuente e idioma de la interfaz) que se
+        apliquen de inmediato y se conserven entre sesiones del navegador.
+\end{description}
+
+\subsection{Extracción, normalización e ingesta de datos}
+
+\begin{description}
+  \item[RF-19.] El sistema debe extraer automáticamente, de la fuente externa
+        \texttt{km77.com}, la información técnica y comercial de los vehículos,
+        recorriendo la jerarquía marca\,$\rightarrow$\,modelo\,$\rightarrow$\,%
+        submodelo\,$\rightarrow$\,versión y obteniendo la ficha de cada
+        versión.
+
+  \item[RF-20.] El sistema debe normalizar los datos en bruto a un formato
+        canónico antes de almacenarlos: conversión de unidades y formatos
+        numéricos, interpretación de fechas de comercialización, traducción de
+        las carrocerías a un vocabulario controlado e inferencia del tipo de
+        combustible y nivel de electrificación (gasolina, gasóleo, gas,
+        eléctrico, microhíbrido, híbrido y enchufable) a partir del nombre y
+        del submodelo de la versión.
+
+  \item[RF-21.] El sistema debe ingerir los datos normalizados en la base de
+        datos de forma idempotente, de modo que reejecutar la extracción
+        actualice las versiones existentes en lugar de duplicarlas (empleando
+        la URL de la versión como clave única).
+
+  \item[RF-22.] El proceso de ingesta debe ser tolerante a fallos por registro:
+        un dato individual inválido no debe abortar la ingesta del lote, y el
+        sistema debe devolver un resumen del proceso (leídos, validados,
+        normalizados, guardados y errores en cada fase).
+
+  \item[RF-23.] El sistema debe poder ejecutar la extracción de forma
+        programada y periódica, de acuerdo con una expresión de planificación
+        configurable.
+\end{description}
+
+La Tabla~\ref{tab:resumen-rf} resume los veintitrés requisitos funcionales y les
+asigna una prioridad orientativa según su importancia para cumplir los objetivos
+del trabajo: \emph{alta} para las capacidades nucleares (catálogo, asistente y
+obtención de datos), \emph{media} para las funciones de apoyo y \emph{baja} para
+los aspectos opcionales o accesorios.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{1.3cm}p{9.7cm}p{1.6cm}}
+\hline
+\textbf{ID} & \textbf{Descripción breve} & \textbf{Prioridad} \\
+\hline
+RF-01 & Catálogo de vehículos paginado (\texttt{limit}/\texttt{offset}). & Alta \\
+RF-02 & Filtrado combinable por marca, modelo, combustible, carrocería, etc. & Alta \\
+RF-03 & Provisión de los valores disponibles para los filtros categóricos. & Media \\
+RF-04 & Consulta de la ficha completa de un vehículo por su identificador. & Alta \\
+RF-05 & Comparación de varios vehículos preservando el orden solicitado. & Media \\
+RF-06 & Orden por defecto determinista por novedad (paginación estable). & Media \\
+RF-07 & Asistente conversacional sobre datos reales. & Alta \\
+RF-08 & Mantenimiento del contexto multiturno de la conversación. & Alta \\
+RF-09 & Prohibición de inventar datos: toda cifra procede de una \emph{tool}. & Alta \\
+RF-10 & Interpretación de intenciones vagas como filtros concretos. & Alta \\
+RF-11 & Respuestas en bloques (texto, tabla, gráfica e imagen). & Alta \\
+RF-12 & Generación de gráficas a partir de agregaciones. & Media \\
+RF-13 & Gestión de atributos no soportados (aviso, alternativa y búsqueda). & Media \\
+RF-14 & Respuesta bilingüe (español/inglés) sin traducir los datos. & Media \\
+RF-15 & Reintento y error controlado ante respuestas mal formadas. & Media \\
+RF-16 & Gestión de favoritos persistidos en el navegador. & Baja \\
+RF-17 & Historial de conversaciones (consultar, reabrir y eliminar). & Baja \\
+RF-18 & Ajustes de accesibilidad (tema, fuente e idioma) persistentes. & Media \\
+RF-19 & Extracción jerárquica de los datos de \texttt{km77.com}. & Alta \\
+RF-20 & Normalización de los datos a un formato canónico. & Alta \\
+RF-21 & Ingesta idempotente (URL como clave única). & Alta \\
+RF-22 & Ingesta tolerante a fallos por registro, con resumen del proceso. & Media \\
+RF-23 & Ejecución programada y periódica de la extracción. & Baja \\
+\hline
+\end{tabular}
+\caption{Resumen de los requisitos funcionales y su prioridad.}
+\label{tab:resumen-rf}
+\end{table}
 
 \section{Requisitos no funcionales}
+\label{sec:req-no-funcionales}
+
+Los requisitos no funcionales establecen las restricciones de calidad bajo las
+que debe operar el sistema. Se identifican con el prefijo \textbf{RNF}.
+
+\subsection{Usabilidad y accesibilidad}
+
+\begin{description}
+  \item[RNF-01.] La interfaz debe poder ser utilizada por personas sin
+        conocimientos técnicos de automoción, ofreciendo tanto un acceso guiado
+        por filtros (catálogo) como un acceso libre en lenguaje natural
+        (asistente).
+
+  \item[RNF-02.] La aplicación debe ofrecer ajustes de accesibilidad básicos
+        (tema claro/oscuro y tamaño de fuente), y los diálogos modales deben
+        respetar buenas prácticas de accesibilidad: rol de diálogo, atrapado de
+        foco, cierre con la tecla \texttt{Esc} y devolución del foco al
+        elemento que los abrió.
+
+  \item[RNF-03.] La interfaz debe ser multilingüe (español e inglés), tanto en
+        sus textos estáticos como en la prosa generada por el asistente.
+
+  \item[RNF-04.] La aplicación debe proporcionar retroalimentación visual
+        durante las operaciones asíncronas (esqueletos de carga en el catálogo,
+        indicador de escritura del asistente) y mensajes claros ante estados de
+        error o ausencia de resultados.
+
+  \item[RNF-05.] La interfaz debe advertir explícitamente de que las respuestas
+        generadas por inteligencia artificial pueden contener errores.
+\end{description}
+
+\subsection{Fiabilidad y robustez}
+
+\begin{description}
+  \item[RNF-06.] El sistema debe degradar de forma controlada ante datos
+        ausentes: numerosos atributos de los vehículos pueden faltar en la
+        fuente (maletero en \emph{pickups}, número de marchas en eléctricos e
+        híbridos con cambio continuo, etc.), y tanto el modelo de datos como la
+        interfaz deben admitir valores nulos sin producir fallos.
+
+  \item[RNF-07.] El backend no debe exponer detalles internos en las respuestas
+        de error: los mensajes al cliente deben ser genéricos y el detalle
+        técnico debe quedar registrado únicamente en los \emph{logs}.
+
+  \item[RNF-08.] El sistema debe ser observable: las operaciones del asistente
+        deben registrar un identificador de petición, las herramientas
+        invocadas y el número de resultados, para facilitar la depuración del
+        comportamiento del modelo.
+\end{description}
+
+\subsection{Seguridad}
+
+\begin{description}
+  \item[RNF-09.] Todas las consultas a la base de datos deben construirse de
+        forma segura frente a inyección SQL: los valores aportados por el
+        usuario o por el modelo de lenguaje deben pasar siempre parametrizados,
+        y los nombres de métrica, campo y agrupación de las agregaciones deben
+        validarse contra listas blancas antes de interpolarse en la consulta.
+
+  \item[RNF-10.] El endpoint de ingesta debe impedir el acceso a rutas fuera
+        del directorio autorizado, bloqueando rutas absolutas y travesías de
+        directorios.
+
+  \item[RNF-11.] El sistema debe ofrecer mecanismos opcionales de protección
+        del backend (limitación de tasa de peticiones por minuto y exigencia de
+        una clave de API para el chat y la ingesta) que puedan activarse
+        mediante configuración sin alterar el comportamiento por defecto.
+
+  \item[RNF-12.] La clave de acceso al proveedor del modelo de lenguaje y demás
+        credenciales deben gestionarse mediante variables de entorno y nunca
+        codificarse en el código fuente.
+\end{description}
+
+\subsection{Rendimiento}
+
+\begin{description}
+  \item[RNF-13.] Las consultas más frecuentes del catálogo deben estar
+        soportadas por índices en la base de datos (marca, modelo, precio,
+        combustible, carrocería, potencia, plazas y fecha de inicio de
+        comercialización), incluyendo un índice parcial para la consulta de
+        versiones vigentes.
+
+  \item[RNF-14.] El bucle de razonamiento del asistente debe estar acotado en
+        número de iteraciones de llamada a herramientas, para evitar consumos
+        excesivos de tiempo y de coste frente al proveedor del modelo.
+
+  \item[RNF-15.] El proceso de extracción debe respetar la fuente de datos,
+        empleando límites de concurrencia, retardos entre peticiones y
+        regulación automática del rendimiento (\emph{autothrottle}), así como
+        la posibilidad de reanudar trabajos interrumpidos.
+\end{description}
+
+\subsection{Mantenibilidad y despliegue}
+
+\begin{description}
+  \item[RNF-16.] El sistema debe poder desplegarse de forma reproducible
+        mediante contenedores, con cada componente (extracción, backend, base
+        de datos y frontend) aislado y comunicado a través de una red interna.
+
+  \item[RNF-17.] La configuración del sistema (cadena de conexión a la base de
+        datos, orígenes CORS permitidos, modelo de lenguaje, planificación del
+        \emph{scraper}, etc.) debe ser externa al código y parametrizable por
+        entorno.
+
+  \item[RNF-18.] El código debe disponer de pruebas automatizadas tanto en el
+        backend como en el frontend que respalden las funcionalidades críticas
+        de normalización, repositorio de datos y componentes de interfaz.
+\end{description}
 
 \section{Casos de uso}
+\label{sec:req-casos-uso}
+
+A partir de los actores y de los requisitos funcionales identificados, esta
+sección describe los principales casos de uso del sistema. El actor central es
+el \emph{usuario final}, que protagoniza la interacción; se incluyen además los
+casos del actor automático de extracción. Cada caso de uso se identifica con el
+prefijo \textbf{CU}.
+
+\subsection{CU-01: Explorar el catálogo de vehículos}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Requisitos relacionados:] RF-01, RF-02, RF-03, RF-06.
+  \item[Precondición:] La base de datos contiene vehículos ingeridos.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario accede a la vista de catálogo.
+          \item El sistema carga los valores disponibles para los filtros y
+                muestra la primera página de resultados, ordenados por novedad.
+          \item El usuario selecciona uno o varios filtros (marca, combustible,
+                carrocería, rango de precio, etc.) y los aplica.
+          \item El sistema recupera y muestra los vehículos que cumplen los
+                criterios, paginados.
+          \item El usuario navega entre páginas o ajusta los filtros.
+        \end{enumerate}
+  \item[Flujos alternativos:] Si ningún vehículo cumple los criterios, el
+        sistema muestra un estado vacío explicativo. Si se produce un error de
+        comunicación, el sistema muestra un mensaje de error y ofrece reintentar.
+  \item[Postcondición:] El usuario visualiza el subconjunto de vehículos
+        deseado.
+\end{description}
+
+\subsection{CU-02: Consultar y comparar fichas de vehículos}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Requisitos relacionados:] RF-04, RF-05.
+  \item[Precondición:] Existen vehículos en el catálogo.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario selecciona un vehículo para ver su ficha completa.
+          \item El sistema muestra todos los atributos técnicos y comerciales
+                de la versión.
+          \item Opcionalmente, el usuario solicita comparar varios vehículos.
+          \item El sistema presenta sus fichas enfrentadas, respetando el orden
+                indicado.
+        \end{enumerate}
+  \item[Flujo alternativo:] Si el identificador solicitado no existe, el
+        sistema informa de que el vehículo no se ha encontrado.
+  \item[Postcondición:] El usuario dispone de la información detallada de uno o
+        varios vehículos.
+\end{description}
+
+\subsection{CU-03: Consultar al asistente conversacional}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Actores secundarios:] Proveedor del modelo de lenguaje.
+  \item[Requisitos relacionados:] RF-07 a RF-15.
+  \item[Precondición:] El servicio de modelo de lenguaje está configurado y
+        disponible.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario escribe una pregunta en lenguaje natural sobre
+                vehículos.
+          \item El sistema interpreta la intención y consulta la base de datos
+                a través de sus herramientas internas (búsqueda, ficha,
+                comparación o agregación).
+          \item El sistema genera una respuesta estructurada en bloques de
+                texto, tablas, gráficas o imágenes, en el idioma preferido del
+                usuario.
+          \item El usuario lee la respuesta y, si lo desea, continúa la
+                conversación con nuevos mensajes que el sistema interpreta en
+                contexto.
+        \end{enumerate}
+  \item[Flujos alternativos:]
+        \begin{itemize}
+          \item Ante una petición vaga, el sistema infiere filtros razonables y
+                busca igualmente, refinando después.
+          \item Ante un atributo no soportado, el sistema lo advierte, propone
+                la dimensión más cercana y ejecuta la búsqueda con el resto de
+                criterios.
+          \item Si el modelo devuelve una respuesta mal formada, el sistema
+                reintenta y, en última instancia, muestra un mensaje de error
+                controlado.
+        \end{itemize}
+  \item[Postcondición:] El usuario obtiene una respuesta basada en datos reales
+        del catálogo.
+\end{description}
+
+\subsection{CU-04: Gestionar la lista de favoritos}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Requisitos relacionados:] RF-16.
+  \item[Precondición:] Ninguna.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario marca un vehículo como favorito.
+          \item El sistema persiste la elección en el navegador.
+          \item El usuario consulta la vista de favoritos, donde se muestran
+                las fichas de los vehículos guardados.
+          \item El usuario puede desmarcar un vehículo, que desaparece de la
+                lista.
+        \end{enumerate}
+  \item[Postcondición:] La lista de favoritos refleja la selección del usuario y
+        se conserva entre sesiones del navegador.
+\end{description}
+
+\subsection{CU-05: Gestionar el historial de conversaciones}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Requisitos relacionados:] RF-17.
+  \item[Precondición:] Ninguna.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item Al conversar, el sistema guarda automáticamente la sesión con un
+                título derivado del primer mensaje del usuario.
+          \item El usuario accede al historial y visualiza sus conversaciones,
+                ordenadas de la más reciente a la más antigua.
+          \item El usuario reabre una conversación previa o inicia una nueva.
+          \item El usuario puede eliminar una conversación del historial.
+        \end{enumerate}
+  \item[Postcondición:] El historial refleja las conversaciones del usuario,
+        almacenadas localmente.
+\end{description}
+
+\subsection{CU-06: Ajustar las preferencias de accesibilidad}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Requisitos relacionados:] RF-18, RNF-02, RNF-03.
+  \item[Precondición:] Ninguna.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario abre el panel de ajustes.
+          \item Selecciona el tema (claro u oscuro), el tamaño de fuente y el
+                idioma de la interfaz.
+          \item El sistema aplica los cambios de inmediato y los persiste.
+        \end{enumerate}
+  \item[Postcondición:] La interfaz se presenta según las preferencias elegidas,
+        que se mantienen en visitas posteriores.
+\end{description}
+
+\subsection{CU-07: Comparar opciones mediante visualizaciones}
+
+\begin{description}
+  \item[Actor principal:] Usuario final.
+  \item[Actores secundarios:] Proveedor del modelo de lenguaje.
+  \item[Requisitos relacionados:] RF-12, RF-11.
+  \item[Precondición:] El asistente está disponible.
+  \item[Flujo principal:]
+        \begin{enumerate}
+          \item El usuario formula una consulta de naturaleza cuantitativa o
+                comparativa (por ejemplo, «precio medio por marca de los SUV»).
+          \item El sistema calcula la agregación correspondiente sobre la base
+                de datos.
+          \item El sistema devuelve una gráfica (de barras o radar) acompañada,
+                en su caso, de texto explicativo.
+        \end{enumerate}
+  \item[Flujo alternativo:] Si los datos son insuficientes para una gráfica
+        fiable, el sistema recurre a una representación en forma de tabla.
+  \item[Postcondición:] El usuario dispone de una visualización que facilita la
+        comparación.
+\end{description}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{Figuras/casos_uso_usuario.png}
+    \caption{Diagrama de casos de uso del usuario final.}
+    \label{fig:casos-uso-usuario}
+\end{figure}
+
 
 
 % ---------------------------------------------------------------------
