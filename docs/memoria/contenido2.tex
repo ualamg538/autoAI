@@ -10,28 +10,27 @@ de abstracción: a partir de los requisitos recogidos en el capítulo anterior, 
 definen la arquitectura global del sistema, la estructura de los datos que lo
 sustentan, los servicios que lo componen y los flujos de información que los
 conectan. El objetivo es justificar las decisiones de diseño antes de descender,
-en el capítulo de implementación, al detalle del código. La exposición sigue un
-recorrido natural por las capas del sistema: primero la visión de conjunto y la
-forma en que se reparten las responsabilidades entre componentes; después el
-modelo de datos y su materialización en la base de datos; a continuación el
-diseño del \emph{backend} y de su API REST; seguidamente el pipeline que traduce
-una consulta en lenguaje natural en una respuesta fundamentada en datos reales;
-y, por último, el diseño de la interfaz de usuario.
+en el capítulo de implementación, al detalle del código. La exposición recorre
+las capas del sistema: primero la visión de conjunto y el reparto de
+responsabilidades entre componentes; después el modelo de datos y su
+representación en la base de datos; a continuación el diseño del \emph{backend} y
+de su API REST; seguidamente el pipeline que traduce una consulta en lenguaje
+natural en una respuesta fundamentada en datos reales; y, por último, el diseño
+de la interfaz de usuario.
 
 \section{Arquitectura general}
 \label{sec:arquitectura-general}
 
-\emph{autoAI} se ha concebido como un sistema distribuido de cuatro
-\textbf{servicios independientes y desacoplados}, cada uno con una única
-responsabilidad y empaquetado en su propio contenedor. Esta separación responde
-directamente a la heterogeneidad de las tareas que el sistema debe afrontar:
-extraer datos de una fuente web externa, almacenarlos de forma estructurada,
-exponerlos a través de una API y razonar sobre ellos mediante un modelo de
-lenguaje, y presentarlos en una interfaz interactiva. Cada una de estas
-actividades tiene un ciclo de vida, unas dependencias tecnológicas y un patrón
-de ejecución distintos, por lo que aislarlas en componentes separados favorece
-el mantenimiento, permite escalarlas o sustituirlas por separado y evita que un
-fallo en una de ellas comprometa a las demás.
+\emph{autoAI} se estructura como un sistema distribuido de cuatro
+\textbf{servicios desacoplados}, cada uno con una única responsabilidad y
+empaquetado en su propio contenedor. Esta separación responde a la heterogeneidad
+de las tareas del sistema: extraer datos de una fuente web externa, almacenarlos
+de forma estructurada, exponerlos a través de una API, razonar sobre ellos
+mediante un modelo de lenguaje y presentarlos en una interfaz interactiva. Cada
+una de estas actividades tiene un ciclo de vida, unas dependencias tecnológicas y
+un patrón de ejecución distintos, por lo que aislarlas en componentes separados
+facilita el mantenimiento, permite escalarlas o sustituirlas por separado y evita
+que un fallo en una comprometa a las demás.
 
 Los cuatro servicios son los siguientes:
 
@@ -78,15 +77,15 @@ Los cuatro servicios son los siguientes:
     \label{fig:arquitectura}
 \end{figure}
 
-El elemento que articula esta arquitectura es la elección de un \textbf{punto de
-acceso único a los datos}: el \emph{backend} es el único servicio autorizado a
-leer y escribir en la base de datos. El \emph{frontend} nunca consulta la base
-de datos directamente, sino que pasa siempre por la API; y el \emph{scraper},
-aun produciendo los datos, tampoco los inserta por su cuenta, sino que delega su
-ingesta en el \emph{backend} mediante una llamada HTTP. Esta decisión concentra
-en un solo lugar la validación, la normalización y el control de acceso, evita
-duplicar la lógica de persistencia y garantiza que ningún dato entre en la base
-de datos sin haber pasado antes por el mismo proceso de saneamiento.
+La arquitectura se apoya en un \textbf{punto de acceso único a los datos}: el
+\emph{backend} es el único servicio autorizado a leer y escribir en la base de
+datos. El \emph{frontend} nunca consulta la base de datos directamente, sino que
+pasa siempre por la API; y el \emph{scraper}, aun produciendo los datos, tampoco
+los inserta por su cuenta, sino que delega su ingesta en el \emph{backend}
+mediante una llamada HTTP. Esta decisión concentra en un solo lugar la
+validación, la normalización y el control de acceso, evita duplicar la lógica de
+persistencia y garantiza que ningún dato entre en la base de datos sin haber
+pasado antes por el mismo proceso de saneamiento.
 
 \subsection*{Comunicación entre servicios}
 
@@ -106,10 +105,9 @@ entre sí por su nombre lógico (\texttt{bd}, \texttt{backend}, etc.), sin
 necesidad de direcciones fijas. El arranque está ordenado según las dependencias
 reales: el \emph{backend} no se inicia hasta que la base de datos responde a su
 comprobación de salud, y ni el \emph{frontend} ni el \emph{scraper} arrancan
-hasta que el \emph{backend} está operativo. Con ello se elimina toda una clase
-de errores transitorios de arranque sin recurrir a esperas arbitrarias. Los
-detalles concretos de contenerización y orquestación se describen en el capítulo
-de implementación.
+hasta que el \emph{backend} está operativo. Con ello se evitan los errores
+transitorios de arranque sin recurrir a esperas arbitrarias. Los detalles de
+contenerización y orquestación se describen en el capítulo de implementación.
 
 \subsection*{Patrón arquitectónico interno del \emph{backend}}
 
@@ -144,20 +142,18 @@ estos de los modelos y el núcleo, nunca a la inversa.
 \section{Modelo de datos}
 \label{sec:modelo-datos}
 
-El modelo de datos de \emph{autoAI} gira en torno a un único concepto central:
-la \textbf{versión de un vehículo}. El dominio de los automóviles es
-naturalmente jerárquico —una \emph{marca} agrupa varios \emph{modelos}, cada
-modelo se ofrece en distintos \emph{submodelos} o generaciones, y cada submodelo
-incluye varias \emph{versiones} o acabados con motorizaciones y equipamientos
-diferentes—, pero es la versión la que constituye la unidad mínima con
-significado para el usuario: es a ese nivel donde están definidos el precio, la
-potencia, el consumo o las dimensiones concretas. Por ello, la versión es la
-entidad sobre la que se construyen las búsquedas, las comparaciones y las
-recomendaciones.
+El modelo de datos de \emph{autoAI} tiene un concepto central: la
+\textbf{versión de un vehículo}. El dominio de los automóviles es jerárquico
+—una \emph{marca} agrupa varios \emph{modelos}, cada modelo se ofrece en
+distintos \emph{submodelos} o generaciones, y cada submodelo incluye varias
+\emph{versiones} o acabados con motorizaciones y equipamientos diferentes—, pero
+es la versión la que constituye la unidad mínima con significado para el usuario:
+es a ese nivel donde están definidos el precio, la potencia, el consumo y las
+dimensiones. Por ello, la versión es la entidad sobre la que se construyen las
+búsquedas, las comparaciones y las recomendaciones.
 
-Esta entidad se materializa en el sistema a través de dos representaciones
-distintas que conviene diferenciar desde el principio, porque reflejan dos
-momentos del ciclo de vida del dato:
+Esta entidad se representa en el sistema mediante dos estructuras distintas, que
+corresponden a dos momentos del ciclo de vida del dato:
 
 \begin{itemize}
     \item Una representación \textbf{cruda} (\texttt{CocheScrap}), que recoge los
@@ -171,8 +167,8 @@ momentos del ciclo de vida del dato:
     modelo canónico del sistema. Cada atributo tiene ya su tipo correcto
     (numérico, fecha, texto), las unidades se han eliminado, los vocabularios se
     han unificado y la ausencia de dato se representa de forma explícita. Es la
-    estructura que viaja por toda la aplicación: la que devuelve la base de
-    datos, la que consume el pipeline de IA y la que recibe la interfaz.
+    estructura común a todas las capas: la que devuelve la base de datos, la que
+    consume el pipeline de IA y la que recibe la interfaz.
 \end{itemize}
 
 El paso de la primera representación a la segunda es el proceso de normalización,
@@ -186,13 +182,13 @@ imágenes); se detallan en la sección~\ref{sec:diseno-pipeline-ia}.
 \label{sec:diseno-bd}
 
 La persistencia se resuelve con una base de datos relacional \emph{PostgreSQL}.
-La decisión de diseño más característica es que el catálogo se almacena en una
-\textbf{única tabla, \texttt{cars}, deliberadamente desnormalizada}, en la que
-cada fila representa una versión completa de un vehículo con todos sus atributos.
-La jerarquía marca\,$\to$\,modelo\,$\to$\,submodelo\,$\to$\,versión no se modela
-con tablas separadas y claves foráneas, sino que se aplana en cuatro columnas de
-texto dentro de la misma fila (\texttt{marca}, \texttt{modelo},
-\texttt{submodelo}, \texttt{nombre}).
+El catálogo se almacena en una \textbf{única tabla, \texttt{cars}, desnormalizada
+de forma deliberada}, en la que cada fila representa una versión completa de un
+vehículo con todos sus atributos. La jerarquía
+marca\,$\to$\,modelo\,$\to$\,submodelo\,$\to$\,versión no se modela con tablas
+separadas y claves foráneas, sino que se aplana en cuatro columnas de texto
+dentro de la misma fila (\texttt{marca}, \texttt{modelo}, \texttt{submodelo},
+\texttt{nombre}).
 
 Esta elección, que se aparta de la tercera forma normal que cabría esperar en un
 diseño relacional ortodoxo, está justificada por la naturaleza del problema:
@@ -200,20 +196,19 @@ diseño relacional ortodoxo, está justificada por la naturaleza del problema:
 \begin{itemize}
     \item \textbf{La carga de trabajo es de solo lectura.} El usuario nunca
     edita el catálogo; este se regenera por completo desde la fuente. No existe,
-    por tanto, el riesgo de anomalías de actualización que la normalización
-    busca prevenir, que es precisamente su principal motivación.
+    por tanto, el riesgo de anomalías de actualización que la normalización busca
+    prevenir, que es la principal razón de ser de esta.
 
     \item \textbf{El patrón de acceso dominante es el filtrado multicriterio
     sobre una sola entidad.} Casi todas las consultas (tanto del catálogo como de
     las herramientas de la IA) seleccionan versiones según combinaciones de
     atributos de la propia versión. Una tabla plana resuelve estas consultas sin
-    una sola operación de \emph{join}, lo que simplifica drásticamente el
-    \emph{repositorio} y mejora el rendimiento.
+    ninguna operación de \emph{join}, lo que simplifica el \emph{repositorio} y
+    mejora el rendimiento.
 
-    \item \textbf{Reduce la complejidad accidental.} Para un catálogo de tamaño
-    moderado y que cabe holgadamente en memoria, mantener un esquema en estrella
-    o totalmente normalizado añadiría complejidad sin beneficio práctico
-    apreciable.
+    \item \textbf{Reduce la complejidad.} Para un catálogo de tamaño moderado y
+    que cabe en memoria, un esquema en estrella o totalmente normalizado añadiría
+    complejidad sin un beneficio práctico apreciable.
 \end{itemize}
 
 \subsubsection*{Estructura de la tabla \texttt{cars}}
@@ -272,13 +267,12 @@ del vocabulario canónico definido en la normalización.
 
 \subsubsection*{Tratamiento de los datos ausentes}
 
-Una característica esencial del diseño es la admisión explícita de
-\textbf{valores nulos} en la mayoría de las columnas de atributos. La fuente de
-datos no es uniforme: hay vehículos sin maletero (como los \emph{pick-up}),
-motorizaciones híbridas o eléctricas sin un número discreto de marchas, y campos
-que el portal sencillamente no registra. Modelar la ausencia con \texttt{NULL}
-—en lugar de con valores centinela como un cero o una cadena vacía— es
-fundamental porque permite distinguir «este coche pesa cero», que sería un dato
+El diseño admite \textbf{valores nulos} de forma explícita en la mayoría de las
+columnas de atributos. La fuente de datos no es uniforme: hay vehículos sin
+maletero (como los \emph{pick-up}), motorizaciones híbridas o eléctricas sin un
+número discreto de marchas, y campos que el portal no registra. Modelar la
+ausencia con \texttt{NULL} —en lugar de con valores centinela como un cero o una
+cadena vacía— permite distinguir «este coche pesa cero», que sería un dato
 erróneo, de «no se conoce el peso de este coche», que es la situación real. Esta
 distinción se propaga a todo el sistema: el \emph{backend} ordena los resultados
 colocando siempre los valores nulos al final, y la interfaz los muestra como
@@ -296,16 +290,15 @@ del modelo de lenguaje tratan de forma explícita.
 \subsubsection*{Índices}
 
 Para sostener el rendimiento de las consultas más frecuentes sin recurrir a
-optimizaciones prematuras, el esquema define un conjunto reducido y deliberado de
-índices. Se indexan las columnas sobre las que más habitualmente se filtra
-(\texttt{marca}, \texttt{modelo}, \texttt{precio}, \texttt{combustible},
-\texttt{carroceria}, \texttt{potencia}, \texttt{plazas}) y la columna que
-gobierna el orden por defecto del catálogo (\texttt{fecha\_inicio}, ya que las
-novedades se muestran primero). Merece mención especial un \textbf{índice
-parcial} sobre las versiones vigentes —las que tienen \texttt{fecha\_fin}
-nula—: al restringir el índice únicamente a las filas que cumplen esa condición,
-se acelera de forma muy eficiente la consulta «solo vehículos a la venta», que es
-una de las más recurrentes, ocupando además mucho menos espacio que un índice
+optimizaciones prematuras, el esquema define un conjunto reducido de índices. Se
+indexan las columnas sobre las que más habitualmente se filtra (\texttt{marca},
+\texttt{modelo}, \texttt{precio}, \texttt{combustible}, \texttt{carroceria},
+\texttt{potencia}, \texttt{plazas}) y la columna que gobierna el orden por
+defecto del catálogo (\texttt{fecha\_inicio}, ya que las novedades se muestran
+primero). Se añade además un \textbf{índice parcial} sobre las versiones vigentes
+—las que tienen \texttt{fecha\_fin} nula—: al restringir el índice a las filas
+que cumplen esa condición, se acelera la consulta «solo vehículos a la venta»,
+una de las más recurrentes, y se ocupa mucho menos espacio que con un índice
 completo.
 
 % Diagrama entidad-relación (o, al ser una sola tabla, esquema físico de la
@@ -325,17 +318,16 @@ completo.
 \subsection{Normalización de los datos de los vehículos}
 \label{sec:normalizacion}
 
-La normalización es, posiblemente, la pieza de diseño más delicada del sistema.
-Los datos que llegan del \emph{scraping} son fieles a la fuente pero
-heterogéneos y «sucios»: vienen como texto con unidades incrustadas, con
-formatos de número propios del español, con rangos de fechas escritos como
-cadenas y, sobre todo, con vocabularios inconsistentes y datos implícitos. El
-proceso de normalización tiene como misión convertir esa materia prima en el
+La normalización es una de las partes más delicadas del diseño. Los datos que
+llegan del \emph{scraping} son fieles a la fuente pero heterogéneos: vienen como
+texto con unidades incrustadas, con formatos de número propios del español, con
+rangos de fechas escritos como cadenas y, sobre todo, con vocabularios
+inconsistentes y datos implícitos. La normalización convierte esos datos en el
 modelo canónico \texttt{Version}, de forma que el resto del sistema —y en
-particular el modelo de lenguaje— pueda razonar sobre datos limpios, tipados y
-con un vocabulario cerrado y predecible. Se distinguen tres tareas: el
-saneamiento de los valores escalares, la unificación de los vocabularios
-categóricos y la persistencia idempotente.
+particular el modelo de lenguaje— pueda operar sobre datos tipados y con un
+vocabulario cerrado y predecible. Comprende tres tareas: el saneamiento de los
+valores escalares, la unificación de los vocabularios categóricos y la
+persistencia idempotente.
 
 \subsubsection*{Saneamiento de valores escalares}
 
@@ -354,27 +346,25 @@ completo.
 
 \subsubsection*{Unificación de vocabularios categóricos}
 
-El reto más interesante del diseño no son los números, sino los atributos
-categóricos, y muy especialmente el \textbf{tipo de combustible}. El portal de
-origen no clasifica los vehículos por su grado de electrificación: en su campo de
-combustible solo indica la fuente del motor de combustión (gasolina, gasóleo o
-combinaciones con gas), y deja ese campo vacío para los eléctricos puros. La
-información de si un coche es híbrido suave, híbrido autorrecargable o híbrido
-enchufable no está en ese campo, sino \emph{implícita} en el nombre comercial de
-la versión.
+La dificultad no está en los números, sino en los atributos categóricos, y en
+particular en el \textbf{tipo de combustible}. El portal de origen no clasifica
+los vehículos por su grado de electrificación: en su campo de combustible solo
+indica la fuente del motor de combustión (gasolina, gasóleo o combinaciones con
+gas), y deja ese campo vacío para los eléctricos puros. La información de si un
+coche es híbrido suave, híbrido autorrecargable o híbrido enchufable no está en
+ese campo, sino \emph{implícita} en el nombre comercial de la versión.
 
-El diseño aborda este problema definiendo un \textbf{vocabulario canónico cerrado
-de nueve valores} que codifica, en un único atributo, tanto la fuente fósil como
-el nivel de electrificación (tabla~\ref{tab:vocab-combustible}). El proceso de
-normalización del combustible determina, por un lado, la base fósil a partir del
-campo de origen y, por otro, el nivel de electrificación analizando el texto del
-nombre y el submodelo con expresiones regulares que reconocen los distintos
-términos comerciales, aplicados en orden de mayor a menor especificidad
-(enchufable antes que autorrecargable, y este antes que suave) para evitar
-clasificaciones erróneas. Es importante señalar que este vocabulario es el mismo
-que después se ofrece al modelo de lenguaje como conjunto cerrado de valores
-válidos: unificar aquí el vocabulario es lo que permite que la IA filtre con
-precisión más adelante.
+Para resolverlo se define un \textbf{vocabulario canónico cerrado de nueve
+valores} que codifica, en un único atributo, tanto la fuente fósil como el nivel
+de electrificación (tabla~\ref{tab:vocab-combustible}). La normalización del
+combustible determina, por un lado, la base fósil a partir del campo de origen y,
+por otro, el nivel de electrificación analizando el texto del nombre y el
+submodelo con expresiones regulares que reconocen los distintos términos
+comerciales, aplicadas en orden de mayor a menor especificidad (enchufable antes
+que autorrecargable, y este antes que suave) para evitar clasificaciones
+erróneas. Este vocabulario es el mismo que después se ofrece al modelo de
+lenguaje como conjunto cerrado de valores válidos: unificarlo aquí es lo que
+permite que la IA filtre con precisión más adelante.
 
 \begin{table}[H]
 \centering
@@ -410,13 +400,12 @@ pasándolos a minúsculas.
 
 \subsubsection*{Idempotencia}
 
-Una propiedad de diseño exigida a las funciones de normalización de vocabulario
-es la \textbf{idempotencia}: aplicar la normalización a un valor ya canónico debe
-devolver ese mismo valor sin alterarlo. Esto es importante porque el catálogo se
-reimporta periódicamente, y debe poder reprocesarse un dato ya normalizado sin
-que se corrompa (por ejemplo, sin que un valor ya en forma canónica se vuelva a
-transformar y deje de ser válido). La idempotencia hace que el proceso de
-ingesta sea seguro de repetir, lo que simplifica enormemente la operación del
+Las funciones de normalización de vocabulario cumplen la propiedad de
+\textbf{idempotencia}: aplicar la normalización a un valor ya canónico devuelve
+ese mismo valor sin alterarlo. Como el catálogo se reimporta periódicamente, un
+dato ya normalizado puede reprocesarse sin corromperse (por ejemplo, sin que un
+valor ya en forma canónica se transforme de nuevo y deje de ser válido). Gracias
+a ello, la ingesta es segura de repetir, lo que simplifica la operación del
 sistema.
 
 \subsubsection*{Persistencia idempotente y tolerante a fallos}
@@ -459,14 +448,14 @@ defectuosas.
 \section{Diseño del \emph{backend} (API REST)}
 \label{sec:diseno-backend}
 
-El \emph{backend} es el núcleo lógico del sistema y expone sus capacidades a
-través de una \textbf{API REST}. Su diseño persigue tres metas: ofrecer a la
-interfaz un contrato de datos claro y tipado, mantener la lógica de acceso a la
-base de datos centralizada y segura, y servir de orquestador para el pipeline de
-inteligencia artificial. La API se organiza en torno a dos grandes familias de
-\emph{endpoints} —los del catálogo y comparador, de naturaleza determinista, y
-el del asistente conversacional, de naturaleza generativa—, más un par de
-\emph{endpoints} de servicio. La tabla~\ref{tab:endpoints} resume el conjunto.
+El \emph{backend} contiene la lógica del sistema y expone sus capacidades a
+través de una \textbf{API REST}. Su diseño persigue tres objetivos: ofrecer a la
+interfaz un contrato de datos tipado, mantener centralizado y seguro el acceso a
+la base de datos, y orquestar el pipeline de inteligencia artificial. La API se
+organiza en dos familias de \emph{endpoints} —los del catálogo y comparador, de
+naturaleza determinista, y el del asistente conversacional, de naturaleza
+generativa—, más un par de \emph{endpoints} de servicio. La
+tabla~\ref{tab:endpoints} resume el conjunto.
 
 \begin{table}[H]
 \centering
@@ -500,14 +489,13 @@ devuelve los valores realmente presentes en la base de datos para cada atributo
 categórico, lo que permite a la interfaz poblar dinámicamente sus desplegables
 sin codificar los valores manualmente.
 
-Una decisión de diseño relevante es que las respuestas de estos \emph{endpoints}
-se ajustan exactamente al modelo canónico \texttt{Version}. El esquema de la
-respuesta se declara de forma explícita, lo que aporta tres beneficios: la
-documentación interactiva de la API se genera automáticamente, la validación de
-la salida está garantizada por el \emph{framework}, y la interfaz puede definir
-un tipo «espejo» que refleja exactamente esa estructura, de modo que el contrato
-de datos entre \emph{frontend} y \emph{backend} queda fijado y verificable en
-ambos extremos.
+Las respuestas de estos \emph{endpoints} se ajustan al modelo canónico
+\texttt{Version}. El esquema de la respuesta se declara de forma explícita, con
+tres consecuencias: la documentación interactiva de la API se genera
+automáticamente, el \emph{framework} valida la salida, y la interfaz puede definir
+un tipo «espejo» que refleja esa estructura, de modo que el contrato de datos
+entre \emph{frontend} y \emph{backend} queda fijado y verificable en ambos
+extremos.
 
 \subsubsection*{El repositorio y la construcción segura de consultas}
 
@@ -520,11 +508,11 @@ condición de la cláusula \texttt{WHERE} y omite los ausentes, soportando tanto
 igualdades simples como filtros de pertenencia a un conjunto (por ejemplo, varios
 tipos de combustible a la vez) y rangos numéricos.
 
-El aspecto más importante de este módulo es su \textbf{tratamiento de la
-seguridad}. Todos los valores aportados por el usuario se pasan a la consulta
-como \textbf{parámetros vinculados}, nunca por interpolación de cadenas, lo que
-elimina por construcción el riesgo de inyección de SQL. En los pocos casos en que
-es inevitable insertar un identificador en la propia estructura de la consulta
+El \textbf{tratamiento de la seguridad} de este módulo merece detalle. Todos los
+valores aportados por el usuario se pasan a la consulta como \textbf{parámetros
+vinculados}, nunca por interpolación de cadenas, lo que elimina por construcción
+el riesgo de inyección de SQL. En los pocos casos en que es inevitable insertar
+un identificador en la propia estructura de la consulta
 —por ejemplo, el nombre de la columna por la que ordenar o agregar—, ese
 identificador se valida previamente contra una \textbf{lista blanca} de valores
 permitidos: el nombre de ordenación se busca en un diccionario cerrado de
@@ -554,16 +542,15 @@ por configuración.
 \section{Diseño del pipeline de consulta con IA}
 \label{sec:diseno-pipeline-ia}
 
-El pipeline de inteligencia artificial es el componente diferencial de
-\emph{autoAI} y el que materializa su objetivo principal: permitir que un usuario
-exprese sus necesidades en \textbf{lenguaje natural} y reciba una recomendación
-\textbf{fundamentada en datos reales}. El reto de diseño central es conciliar dos
-mundos en tensión: la flexibilidad y la fluidez de un modelo de lenguaje, que
-puede interpretar peticiones ambiguas y redactar respuestas naturales, con el
-\textbf{rigor factual} de una base de datos, que es la única fuente legítima de
-cifras. La estrategia adoptada para resolver esta tensión es no permitir nunca
-que el modelo invente datos, sino obligarlo a obtenerlos de la base de datos a
-través de un conjunto acotado de herramientas, en un patrón conocido como
+El pipeline de inteligencia artificial es lo que materializa el objetivo
+principal de \emph{autoAI}: permitir que un usuario exprese sus necesidades en
+\textbf{lenguaje natural} y reciba una recomendación \textbf{fundamentada en
+datos reales}. El problema de diseño consiste en conciliar la flexibilidad de un
+modelo de lenguaje, que puede interpretar peticiones ambiguas y redactar
+respuestas naturales, con el \textbf{rigor factual} de una base de datos, que es
+la única fuente legítima de cifras. La solución adoptada es no permitir que el
+modelo invente datos, sino obligarlo a obtenerlos de la base de datos a través de
+un conjunto acotado de herramientas, mediante el patrón conocido como
 \emph{tool-calling}.
 
 \subsubsection*{De lenguaje natural a filtros estructurados: las herramientas}
@@ -597,31 +584,29 @@ opcionalmente agrupada; es la fuente de las gráficas \\
 \label{tab:tools}
 \end{table}
 
-La clave del diseño está en la \textbf{especificación de los argumentos} de
-estas herramientas. El esquema de filtros que se entrega al modelo no es una
-lista libre, sino un contrato estricto: enumera explícitamente los atributos por
-los que se puede filtrar y, para los categóricos, restringe los valores
-admisibles al vocabulario canónico definido en la normalización. Es aquí donde la
-inversión hecha en la unificación de vocabularios rinde sus frutos: como el campo
-de combustible solo admite los nueve valores canónicos, el modelo no puede pedir
-un «híbrido» genérico ni un «diésel» con otra grafía, sino que debe traducir la
-intención del usuario a los valores exactos que existen en la base de datos. El
-propio esquema incluye, a modo de instrucciones, las equivalencias entre el
-lenguaje coloquial y el vocabulario canónico, lo que guía al modelo en esa
-traducción.
+El elemento determinante es la \textbf{especificación de los argumentos} de
+estas herramientas. El esquema de filtros que se entrega al modelo es un contrato
+estricto: enumera explícitamente los atributos por los que se puede filtrar y,
+para los categóricos, restringe los valores admisibles al vocabulario canónico
+definido en la normalización. Aquí se aprovecha la unificación de vocabularios:
+como el campo de combustible solo admite los nueve valores canónicos, el modelo
+no puede pedir un «híbrido» genérico ni un «diésel» con otra grafía, sino que debe
+traducir la intención del usuario a los valores exactos que existen en la base de
+datos. El propio esquema incluye, a modo de instrucciones, las equivalencias
+entre el lenguaje coloquial y el vocabulario canónico, lo que guía al modelo en
+esa traducción.
 
 \subsubsection*{El bucle de \emph{tool-calling} sobre datos reales}
 
-El corazón del pipeline es un \textbf{bucle de razonamiento} que alterna entre el
-modelo de lenguaje y la ejecución de herramientas. Su funcionamiento es el
-siguiente: se envía al modelo la conversación junto con la descripción de las
-herramientas; si el modelo decide llamar a una o varias, el \emph{backend} las
-ejecuta realmente contra la base de datos y le devuelve los resultados; el modelo
-puede entonces razonar sobre esos datos y decidir si necesita más información
-(refinar la búsqueda, comparar, agregar) o si ya está en condiciones de
-responder. El ciclo se repite hasta que el modelo deja de pedir herramientas, con
-un \textbf{límite máximo de iteraciones} que actúa como salvaguarda para evitar
-bucles infinitos y acotar el coste de cada consulta.
+El componente central del pipeline es un \textbf{bucle de razonamiento} que
+alterna entre el modelo de lenguaje y la ejecución de herramientas. Funciona así:
+se envía al modelo la conversación junto con la descripción de las herramientas;
+si el modelo decide llamar a una o varias, el \emph{backend} las ejecuta contra
+la base de datos y le devuelve los resultados; el modelo razona entonces sobre
+esos datos y decide si necesita más información (refinar la búsqueda, comparar,
+agregar) o si ya puede responder. El ciclo se repite hasta que el modelo deja de
+pedir herramientas, con un \textbf{límite máximo de iteraciones} que evita bucles
+infinitos y acota el coste de cada consulta.
 
 Este diseño garantiza la invariante fundamental del sistema: \textbf{toda cifra
 que aparece en una respuesta procede de una consulta real a la base de datos}.
@@ -635,27 +620,26 @@ cómo actuar cuando el usuario filtra por un atributo que el sistema no soporta
 (explicarlo y ofrecer igualmente una búsqueda aproximada) y cómo tratar casos
 delicados como las unidades de consumo de los híbridos enchufables.
 
-Un matiz de diseño interesante distingue entre \textbf{consultas objetivas y
-consultas exploratorias}. Cuando el usuario pide algo con un criterio inequívoco
-(«el más barato», «el más potente»), la búsqueda devuelve exactamente ese
-resultado de forma determinista. Pero cuando la petición es cualitativa y sin un
-orden objetivo («un coche bonito para ciudad»), el sistema recupera un conjunto
-de candidatos más amplio y selecciona entre ellos con un muestreo sesgado hacia
-los más relevantes, de manera que dos consultas parecidas no devuelvan siempre
-exactamente los mismos vehículos. Con ello se evita que el asistente resulte
-repetitivo sin que por ello se muestren opciones de peor calidad.
+El diseño distingue entre \textbf{consultas objetivas y consultas
+exploratorias}. Cuando el usuario pide algo con un criterio inequívoco («el más
+barato», «el más potente»), la búsqueda devuelve ese resultado de forma
+determinista. Cuando la petición es cualitativa y sin un orden objetivo («un
+coche bonito para ciudad»), el sistema recupera un conjunto de candidatos más
+amplio y selecciona entre ellos con un muestreo sesgado hacia los más
+relevantes, de manera que dos consultas parecidas no devuelvan siempre los mismos
+vehículos. Así se evita que el asistente resulte repetitivo sin mostrar por ello
+opciones de peor calidad.
 
 \subsubsection*{Generación de respuestas estructuradas y explicadas}
 
 Una recomendación de coches no se expresa bien solo con texto: a menudo requiere
 una tabla comparativa, una gráfica de precios o la fotografía del vehículo. Por
-eso, la respuesta del asistente no es una cadena de texto plano, sino un
-documento estructurado compuesto por una secuencia de \textbf{bloques
-tipados}. Se definen cuatro tipos de bloque: texto (en formato \emph{Markdown}),
-tabla, gráfica (de barras o radar) e imagen. El modelo, una vez ha reunido los
-datos a través de las herramientas, emite una respuesta final que se ajusta de
-forma estricta a este esquema de bloques, lo que permite a la interfaz
-renderizar cada uno con el componente adecuado.
+ello, la respuesta del asistente es un documento estructurado compuesto por una
+secuencia de \textbf{bloques tipados}. Se definen cuatro tipos de bloque: texto
+(en formato \emph{Markdown}), tabla, gráfica (de barras o radar) e imagen. Una
+vez ha reunido los datos a través de las herramientas, el modelo emite una
+respuesta final que se ajusta de forma estricta a este esquema de bloques, lo que
+permite a la interfaz renderizar cada uno con el componente adecuado.
 
 Este enfoque exige una \textbf{segunda fase} en el pipeline, separada del bucle
 de herramientas: una vez recopilados todos los datos, se realiza una última
@@ -720,37 +704,37 @@ las cifras subyacentes. En conjunto, estas medidas trasladan la invariante de
 \label{sec:diseno-interfaz}
 
 La interfaz de usuario se ha diseñado como una \textbf{aplicación web de página
-única} que ofrece una experiencia fluida y sin recargas, organizada en torno a
-una barra lateral de navegación que da acceso a sus cuatro áreas funcionales: el
+única}, que actualiza la vista sin recargar la página, organizada en torno a una
+barra lateral de navegación que da acceso a sus cuatro áreas funcionales: el
 \textbf{asistente conversacional}, el \textbf{catálogo}, el \textbf{historial} de
-conversaciones y los \textbf{favoritos}. El criterio rector del diseño es
-ofrecer dos modos de exploración complementarios sobre el mismo catálogo: uno
-\emph{conversacional}, guiado por la IA, para el usuario que prefiere expresar
-sus necesidades con sus propias palabras; y otro \emph{estructurado}, mediante
-filtros explícitos, para quien prefiere acotar la búsqueda por su cuenta.
+conversaciones y los \textbf{favoritos}. El diseño ofrece dos modos de
+exploración complementarios sobre el mismo catálogo: uno \emph{conversacional},
+guiado por la IA, para el usuario que prefiere expresar sus necesidades con sus
+propias palabras; y otro \emph{estructurado}, mediante filtros explícitos, para
+quien prefiere acotar la búsqueda por su cuenta.
 
 \subsubsection*{Interfaz conversacional}
 
 El asistente es la vista principal y se presenta inicialmente con una pantalla de
 bienvenida que invita a escribir la primera consulta. A partir de ahí, la
-interacción adopta la forma familiar de una conversación, en la que se alternan
-los mensajes del usuario y las respuestas del asistente. El reto de diseño
-específico de esta vista es la \textbf{renderización de las respuestas
-estructuradas}: como la respuesta del \emph{backend} es una secuencia de bloques
-tipados, la interfaz recorre esos bloques y delega cada uno en un componente
-especializado —el texto se interpreta como \emph{Markdown}, las tablas se pintan
-como tablas con desplazamiento horizontal, las gráficas se dibujan con una
-biblioteca de visualización y las imágenes se muestran como fichas con una acción
-para añadir el vehículo a favoritos—. Este mecanismo de despacho por tipo de
-bloque es el que permite que una misma respuesta combine, por ejemplo, un párrafo
-introductorio, una tabla comparativa y una gráfica de precios.
+interacción adopta la forma de una conversación, en la que se alternan los
+mensajes del usuario y las respuestas del asistente. El problema de diseño propio
+de esta vista es la \textbf{renderización de las respuestas estructuradas}: como
+la respuesta del \emph{backend} es una secuencia de bloques tipados, la interfaz
+recorre esos bloques y delega cada uno en un componente especializado —el texto
+se interpreta como \emph{Markdown}, las tablas se pintan con desplazamiento
+horizontal, las gráficas se dibujan con una biblioteca de visualización y las
+imágenes se muestran como fichas con una acción para añadir el vehículo a
+favoritos—. Este despacho por tipo de bloque permite que una misma respuesta
+combine, por ejemplo, un párrafo introductorio, una tabla comparativa y una
+gráfica de precios.
 
-El diseño cuida varios detalles de la experiencia conversacional: mientras el
-\emph{backend} procesa la consulta se muestra un indicador de escritura, la vista
-se desplaza automáticamente al último mensaje, los errores de comunicación se
-presentan como un mensaje del asistente en lugar de como un fallo abrupto, y
-junto al campo de entrada figura de forma permanente un aviso de que la IA puede
-cometer errores, en línea con un uso responsable de la herramienta.
+La vista atiende varios detalles de la interacción: mientras el \emph{backend}
+procesa la consulta se muestra un indicador de escritura, la vista se desplaza
+automáticamente al último mensaje, los errores de comunicación se presentan como
+un mensaje del asistente en lugar de como un fallo abrupto, y junto al campo de
+entrada figura de forma permanente un aviso de que la IA puede cometer errores,
+en línea con un uso responsable de la herramienta.
 
 % Captura de pantalla de la interfaz conversacional, idealmente con una
 % respuesta del asistente que combine varios tipos de bloque (texto introductorio,
@@ -807,12 +791,11 @@ queda en un estado ambiguo.
 
 \subsubsection*{Favoritos e historial de consultas}
 
-Por último, el diseño contempla dos funcionalidades de personalización
-—\textbf{favoritos} e \textbf{historial}— con una decisión arquitectónica
-deliberada: ambas se resuelven íntegramente en el lado del cliente, persistiendo
-en el almacenamiento local del navegador, sin necesidad de cuentas de usuario ni
-de almacenamiento en el servidor. Esta opción es coherente con el alcance del
-proyecto —que no contempla la gestión de usuarios— y simplifica notablemente el
+Por último, el diseño incluye dos funcionalidades de personalización
+—\textbf{favoritos} e \textbf{historial}—, ambas resueltas en el lado del
+cliente: se persisten en el almacenamiento local del navegador, sin cuentas de
+usuario ni almacenamiento en el servidor. Esta opción es coherente con el alcance
+del proyecto, que no contempla la gestión de usuarios, y simplifica el
 \emph{backend}, a costa de que la información quede ligada al navegador concreto.
 
 Los favoritos permiten al usuario marcar vehículos de interés (desde las fichas
@@ -898,38 +881,747 @@ había elegido.
 %  6. IMPLEMENTACIÓN
 % ---------------------------------------------------------------------
 \chapter{Implementación}
+\label{cap:implementacion}
+
+Tras el diseño del capítulo anterior, este capítulo expone la implementación: las
+tecnologías empleadas, las decisiones de codificación relevantes y los fragmentos
+de código que sustentan cada componente. La estructura del capítulo sigue el
+recorrido del dato a través del sistema, desde su extracción del portal de origen
+hasta su presentación en la interfaz, pasando por la base de datos, el
+\emph{backend}, el pipeline de inteligencia artificial y la contenerización. En
+cada apartado se justifican las elecciones técnicas y se señalan los puntos del
+código donde se resuelven los problemas ya anticipados en el diseño.
 
 \section{Obtención de datos: scraping de km77.com}
+\label{sec:impl-scraping}
 
-\subsection{Diseño del spider con Scrapy}
+La obtención de datos se ha implementado con \emph{Scrapy}, un \emph{framework}
+de \emph{scraping} asíncrono para Python. Se eligió por varias razones. Maneja de
+forma nativa la concurrencia y el encolado de peticiones, e incluye mecanismos de
+control de carga (\emph{auto-throttle}, retardos entre peticiones) necesarios para
+no saturar el servidor de origen. Además, permite expresar la navegación por el
+sitio como una cascada de \emph{callbacks}, que encaja con la estructura
+jerárquica del portal. Por último, exporta el resultado directamente a JSON, el
+formato que después consume el \emph{backend}.
+
+\subsection{Diseño del \emph{spider} con Scrapy}
+\label{sec:impl-spider}
+
+El portal \texttt{km77.com} organiza su catálogo de forma jerárquica, y el
+\emph{spider} (definido en \texttt{km77\_spider.py}) lo recorre reproduciendo
+esa jerarquía en cinco niveles encadenados, cada uno con su propio
+\emph{callback} que extrae enlaces y los sigue hacia el nivel siguiente:
+
+\begin{enumerate}
+    \item \textbf{Marcas} (\texttt{parse}): a partir de la página índice de
+    coches se extraen los enlaces de cada marca.
+    \item \textbf{Modelos} (\texttt{parse\_brand}): de la página de cada marca
+    se obtienen sus modelos.
+    \item \textbf{Submodelos} (\texttt{parse\_model}): de cada modelo se
+    recogen sus generaciones o submodelos. En este nivel se captura la URL de la
+    fotografía (\texttt{foto\_url}), que solo está disponible aquí.
+    \item \textbf{Versiones} (\texttt{parse\_submodel}): de cada submodelo se
+    listan sus versiones o acabados, junto con la fecha de comercialización y la
+    capacidad de maletero, que figuran en la tabla del submodelo.
+    \item \textbf{Ficha técnica} (\texttt{parse\_version}): finalmente, de la
+    página de cada versión se extraen todos los datos técnicos (precio,
+    potencia, dimensiones, consumo, etc.) y se emite el registro final.
+\end{enumerate}
+
+La información parcial que se necesita en los niveles inferiores (nombre de la
+marca, fotografía, fecha y maletero) se traslada entre \emph{callbacks} mediante
+el diccionario \texttt{meta} de las peticiones de Scrapy, de modo que el registro
+final reúne datos procedentes de varios niveles de la jerarquía.
+
+Las páginas de ficha técnica presentan los datos en tablas cuya estructura no es
+homogénea: unas etiquetas están en celdas de encabezado (\texttt{<th>}) y otras
+en celdas de datos (\texttt{<td>}). Para localizar cada dato con independencia de
+esas variaciones, la extracción combina selectores CSS con expresiones
+\emph{XPath} que buscan una fila por el texto de su etiqueta. Se definieron dos
+funciones auxiliares (\texttt{xpath\_row} y \texttt{xpath\_cell\_all}) que
+encapsulan ambos casos, lo que hace la extracción robusta frente a la disposición
+concreta de cada tabla.
+
+Por decisión de diseño, el \emph{spider} no transforma ni valida los datos:
+extrae cada campo como texto crudo, tal cual aparece en la página (con unidades,
+símbolos de moneda y marcadores de dato ausente), y lo vuelca sin más
+procesamiento. El saneamiento se delega íntegramente en el \emph{backend}, lo que
+mantiene separadas la producción de datos crudos y su validación y persistencia,
+tal como se justificó en el diseño. El resultado se exporta a
+\texttt{km77\_output.json} mediante la configuración de \emph{feeds} de Scrapy.
+
+El listado~\ref{lst:spider} muestra esta cascada: cada \emph{callback} extrae los
+enlaces de su nivel y los sigue (\texttt{response.follow}) hacia el siguiente,
+trasladando la información parcial en el diccionario \texttt{meta}.
+
+\begin{lstlisting}[language=Python,caption={Cascada de \emph{callbacks} del \emph{spider} (extracto de \texttt{km77\_spider.py}).},label={lst:spider}]
+class Km77Spider(scrapy.Spider):
+    name = "km77_spider"
+    start_urls = ["https://www.km77.com/coches"]
+
+    # NIVEL 1 - Marcas
+    def parse(self, response):
+        for brand_link in response.css("a.js-brand-item-link"):
+            brand_name = brand_link.attrib.get("name")
+            yield response.follow(
+                brand_url,
+                callback=self.parse_brand,
+                meta={"brand_name": brand_name},
+            )
+
+    # NIVEL 2 - Modelos por marca
+    def parse_brand(self, response):
+        brand_name = response.meta["brand_name"]
+        for model_tag in response.css("a.d-block"):
+            yield response.follow(
+                model_url,
+                callback=self.parse_model,
+                meta={"brand_name": brand_name, "model_name": model_name},
+            )
+
+    # NIVELES 3 y 4: parse_model -> parse_submodel (analogos)
+    # ...
+
+    # NIVEL 5 - Ficha tecnica de cada version
+    def parse_version(self, response):
+        # xpath_row localiza una celda por el texto de su etiqueta
+        potencia = xpath_row("Potencia maxima")
+        # ... resto de campos como texto crudo, sin normalizar ...
+        yield {
+            "marca": response.meta.get("brand_name"),
+            "potencia": potencia,
+            # ...
+        }
+\end{lstlisting}
+
+\subsection{Control de carga y respeto al portal de origen}
+\label{sec:impl-scraping-etica}
+
+Como el \emph{scraping} accede a un servicio de terceros, su configuración se ha
+orientado a no causar perjuicio al portal. El \emph{spider} declara un
+\emph{user-agent} de navegador realista y un idioma de aceptación coherentes con
+una visita normal, y aplica varios límites de carga: un retardo entre peticiones
+(\texttt{DOWNLOAD\_DELAY}), un tope de peticiones concurrentes y la extensión
+\emph{auto-throttle} de Scrapy, que ajusta la cadencia según la latencia de
+respuesta del servidor y la reduce si el portal empieza a tardar más. El proyecto
+respeta además el fichero \texttt{robots.txt} del sitio (\texttt{ROBOTSTXT\_OBEY}).
+Con ello se obtienen los datos sin degradar el servicio para otros usuarios.
+
+El \emph{spider} habilita asimismo la persistencia del estado de rastreo
+(\texttt{JOBDIR}), de manera que un \emph{crawl} interrumpido puede reanudarse
+sin repetir las peticiones ya realizadas, lo que ahorra carga tanto al portal
+como al propio sistema.
 
 \subsection{Automatización periódica del scraping}
+\label{sec:impl-scraping-cron}
+
+El catálogo de un portal de coches cambia con el tiempo: aparecen modelos nuevos,
+se descatalogan versiones y se actualizan precios. Para que los datos de
+\emph{autoAI} no queden obsoletos, el \emph{scraping} se ejecuta de forma
+periódica y desatendida. La automatización se resuelve dentro del propio
+contenedor del \emph{scraper} mediante \emph{supercronic}, un planificador tipo
+\emph{cron} pensado para contenedores (registra su salida por la salida estándar
+y no requiere un demonio del sistema).
+
+El \emph{script} de arranque del contenedor (\texttt{entrypoint.sh}) genera al
+vuelo una tabla \emph{cron} a partir de la variable de entorno
+\texttt{SCRAPER\_CRON}, cuyo valor por defecto es una ejecución semanal, y lanza
+\emph{supercronic} sobre ella. Así se ajusta la frecuencia del \emph{scraping} por
+configuración, sin tocar el código ni reconstruir la imagen.
+
+Cada ejecución dispara el \emph{script} \texttt{run\_scrape.sh}, que encadena las
+dos fases del proceso: primero lanza el \emph{crawl} de Scrapy y vuelca el
+resultado en el volumen compartido; después notifica al \emph{backend} mediante
+una petición HTTP \texttt{POST} a su \emph{endpoint} de ingesta con el nombre del
+archivo recién generado. Conforme al diseño, el \emph{scraper} no inserta nada en
+la base de datos: solo produce el archivo y delega su ingesta. La llamada usa la
+opción \texttt{--fail-with-body} de \texttt{curl}, de modo que un fallo en la
+ingesta se refleja en el código de salida y queda registrado en los \emph{logs}
+del contenedor.
+
+El listado~\ref{lst:runscrape} recoge el \emph{script} \texttt{run\_scrape.sh}.
+
+\begin{lstlisting}[language=bash,caption={Encadenado de \emph{crawl} e ingesta (\texttt{run\_scrape.sh}).},label={lst:runscrape}]
+#!/bin/sh
+set -e
+
+OUTPUT="${SCRAPER_OUTPUT:-/data/km77_output.json}"
+BACKEND="${BACKEND_URL:-http://backend:8000}"
+
+# /ingest interpreta `file` relativo a INGEST_DIR (/data): enviamos solo el nombre
+OUTPUT_NAME="$(basename "${OUTPUT}")"
+
+# Fase 1: scraping -> volumen compartido
+cd /app
+scrapy crawl km77_spider -O "${OUTPUT}"
+
+# Fase 2: notificar al backend para que ingeste el archivo
+curl -sS --fail-with-body -X POST -H "Content-Type: application/json" \
+    --data "{\"file\":\"${OUTPUT_NAME}\"}" \
+    "${BACKEND}/ingest"
+\end{lstlisting}
 
 \section{Proceso ETL y carga en la base de datos}
+\label{sec:impl-etl}
+
+El proceso de extracción, transformación y carga (ETL) reside íntegramente en el
+\emph{backend}, concentrado en el módulo \texttt{services/normalization.py}, y se
+activa cuando el \emph{scraper} invoca el \emph{endpoint} \texttt{/ingest}. La
+función orquestadora, \texttt{ingest\_desde\_archivo}, encadena cuatro etapas
+(lectura, validación, normalización y persistencia) y devuelve un informe
+detallado de cada una. Las tres últimas se ejecutan de forma independiente para
+cada registro, lo que permite aislar los fallos individuales sin abortar el lote
+completo, conforme a una de las garantías del diseño.
+
+\subsection{Validación y modelos de datos}
+\label{sec:impl-etl-validacion}
+
+El sistema utiliza \emph{Pydantic} para definir y validar todas sus estructuras
+de datos. El ciclo de vida del dato se modela con dos clases, que corresponden a
+los dos momentos descritos en el diseño:
+
+\begin{itemize}
+    \item \texttt{CocheScrap} (en \texttt{models/scraped.py}) es la
+    representación cruda: todos sus campos son de tipo \texttt{str}, porque así
+    llegan del \emph{scraping}. Al construir un \texttt{CocheScrap} a partir de
+    cada elemento del JSON, Pydantic verifica que están todos los campos
+    esperados; un registro malformado lanza una excepción que se captura y se
+    registra como error de validación, sin interrumpir el resto.
+
+    \item \texttt{Version} (en \texttt{models/normalized.py}) es el modelo
+    canónico del sistema, con cada atributo ya tipado (\texttt{int},
+    \texttt{float}, \texttt{datetime.date}, \texttt{str}) y con los campos que
+    pueden faltar declarados como opcionales (\texttt{| None}). Es la estructura
+    común a todas las capas: la que produce la normalización, la que devuelve la
+    base de datos y la que se serializa hacia la interfaz.
+\end{itemize}
+
+\subsection{Saneamiento y unificación de vocabularios}
+\label{sec:impl-etl-normalizacion}
+
+La transformación de \texttt{CocheScrap} a \texttt{Version} la realiza la función
+\texttt{normalizar\_coche}, apoyada en funciones de parseo especializadas por tipo
+de campo. La parte mecánica corresponde a los parsers escalares, que extraen de
+cada cadena el valor numérico o la fecha que contiene y descartan lo accesorio:
+\texttt{parse\_potencia} conserva la cifra en caballos de «\texttt{177 CV / 130
+kW}»; \texttt{parse\_dimension\_mm} elimina el separador de miles de «\texttt{4.165
+mm}»; \texttt{parse\_consumo} retira las unidades de «\texttt{7,2 l/100 km}» y
+normaliza la coma decimal; y \texttt{parse\_fechas} descompone un rango
+«\texttt{(03/2021 - 09/2023)}» en sus dos fechas. Todos ellos se construyen sobre
+una función común, \texttt{parse\_opcional}, que aplica el principio transversal
+del diseño: ante un valor ausente o el marcador de dato faltante del portal (un
+guion), la conversión no falla ni inventa, sino que devuelve \texttt{None}.
+
+Más delicada es la unificación de los vocabularios categóricos, y en particular la
+del combustible. Como el portal no clasifica los vehículos por su grado de
+electrificación, sino que deja esa información implícita en el nombre comercial,
+la función \texttt{normalizar\_combustible} la deriva en dos pasos: primero
+determina la base fósil a partir del campo de origen (\texttt{\_base\_fosil}) y
+después analiza el texto del nombre y el submodelo con tres expresiones regulares
+(\texttt{\_RX\_PHEV}, \texttt{\_RX\_HEV}, \texttt{\_RX\_MHEV}) que reconocen los
+términos comerciales. Estas se aplican en orden de mayor a menor especificidad
+(enchufable antes que autorrecargable, y este antes que microhíbrido) para evitar
+clasificaciones erróneas, y el resultado es uno de los nueve valores del
+vocabulario canónico. La normalización de la carrocería
+(\texttt{normalizar\_carroceria}) sigue una estrategia análoga, con una tabla de
+correspondencias exactas y reglas por subcadena que absorben sinónimos.
+
+Estas funciones son idempotentes: al detectar la base fósil reconocen tanto los
+valores crudos del portal como los ya canónicos, de modo que reprocesar un dato ya
+normalizado devuelve el mismo valor. Gracias a ello, la reimportación periódica
+del catálogo es segura de repetir.
+
+La tabla~\ref{tab:crudo-normalizado} recoge varios ejemplos del resultado de
+este proceso, contrastando el valor crudo extraído del portal con el valor ya
+normalizado y tipado que se persiste en la base de datos.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3.1cm}p{5.0cm}p{3.8cm}}
+\hline
+\textbf{Campo} & \textbf{Entrada cruda (texto)} & \textbf{Salida normalizada} \\
+\hline
+\texttt{potencia} & \texttt{"177 CV / 130 kW"} & \texttt{177.0} (\texttt{float}) \\
+\hline
+\texttt{longitud} & \texttt{"4.165 mm"} & \texttt{4165.0} (\texttt{float}) \\
+\hline
+\texttt{consumo\_medio} & \texttt{"7,2 l/100 km"} & \texttt{7.2} (\texttt{float}) \\
+\hline
+\texttt{precio} & \texttt{"35.900 \euro{}"} & \texttt{35900.0} (\texttt{float}) \\
+\hline
+\texttt{fecha\_inicio} \texttt{fecha\_fin} & \texttt{"(03/2021 - 09/2023)"} & \texttt{2021-03-01}, \texttt{2023-09-01} \\
+\hline
+\texttt{capacidad\_\allowbreak maletero} & \texttt{"-"} & \texttt{NULL} \\
+\hline
+\texttt{numero\_marchas} & \texttt{"Múltiples"} \emph{(e-CVT)} & \texttt{NULL} \\
+\hline
+\texttt{combustible} & \texttt{"Gasolina"} + nombre con «e-Hybrid» & \texttt{phev\_gasolina} \\
+\hline
+\texttt{combustible} & consumo en \texttt{"kWh/100 km"} \emph{(unidad eléctrica)} & \texttt{electrico} \\
+\hline
+\texttt{carroceria} & \texttt{"SUV/Todoterreno"} & \texttt{suv} \\
+\hline
+\end{tabular}
+\caption{Ejemplos de saneamiento y unificación de vocabularios: del texto crudo
+del portal al valor canónico tipado.}
+\label{tab:crudo-normalizado}
+\end{table}
+
+\subsection{Persistencia idempotente y tolerante a fallos}
+\label{sec:impl-etl-persistencia}
+
+La carga en la base de datos (\texttt{guardar\_en\_bd}) se implementa con
+\emph{psycopg} (versión 3) y aplica las dos garantías del diseño. La idempotencia
+a nivel de fila se consigue con una sentencia \texttt{INSERT ... ON CONFLICT (url)
+DO UPDATE}: si una versión ya existe, identificada por su clave de negocio (la
+\texttt{url}), sus datos se actualizan en lugar de provocar un duplicado, de
+manera que el catálogo converge al estado de la última extracción. Todos los
+valores se pasan a la consulta como parámetros con nombre (\texttt{\%(campo)s}),
+nunca por interpolación de cadenas.
+
+La tolerancia a fallos parciales se logra con un \emph{savepoint} anidado por cada
+inserción, mediante el gestor de contexto \texttt{conn.transaction()} de psycopg
+dentro del bucle de filas. Si una fila concreta provoca un error en la base de
+datos, solo se revierte su \emph{savepoint}; las filas correctas previas se
+conservan y el contador de insertados permanece exacto. El error se acumula en una
+lista de fallos que forma parte del informe final. Este informe, devuelto por
+\texttt{ingest\_desde\_archivo} y propagado como respuesta del \emph{endpoint}
+\texttt{/ingest}, recoge cuántos registros se leyeron, validaron, normalizaron y
+guardaron, junto con la lista de los que fallaron y su motivo. Se prioriza así la
+robustez sobre la atomicidad estricta: ante datos imperfectos procedentes de una
+web externa, es preferible cargar todo lo correcto e informar de lo demás que
+rechazar el lote entero.
+
+\subsection{Esquema de la base de datos}
+\label{sec:impl-bd}
+
+La base de datos es una instancia de \emph{PostgreSQL} cuyo esquema se define en
+\texttt{bd/init.sql}, un \emph{script} que el contenedor de PostgreSQL ejecuta
+automáticamente en su primera inicialización. Implementa la única tabla
+\texttt{cars}, desnormalizada según se justificó en el diseño, con sus
+veintiséis columnas, la clave primaria \texttt{id}, la restricción
+\texttt{UNIQUE} sobre \texttt{url} y el conjunto de índices sobre las columnas de
+filtrado más habituales. Entre estos destaca el \textbf{índice parcial}
+\texttt{idx\_cars\_vigentes}, restringido a las filas con \texttt{fecha\_fin IS
+NULL}, que acelera la consulta «solo vehículos a la venta» ocupando una fracción
+del espacio de un índice completo. Los índices que dan soporte al orden por
+defecto y al filtro de vigencia se recogen además en una migración idempotente
+(\texttt{001\_indices\_fecha.sql}), aplicable sobre una base ya poblada sin
+recrear el volumen de datos.
+
+El acceso desde el \emph{backend} se gestiona con un \textbf{pool de conexiones}
+(\texttt{psycopg\_pool}), configurado en \texttt{core/db.py}, que se abre al
+arrancar la aplicación y se reutiliza entre peticiones. Las conexiones se
+configuran para devolver las filas como diccionarios (\texttt{dict\_row}), lo que
+permite construir directamente los modelos \texttt{Version} a partir de cada
+fila.
 
 \section{Backend con FastAPI}
+\label{sec:impl-backend}
+
+El \emph{backend} se ha implementado con \emph{FastAPI}, un \emph{framework} web
+de Python que aprovecha las anotaciones de tipos y se integra de forma nativa con
+Pydantic. Esa integración motivó su elección: al declarar los modelos de entrada y
+salida con tipos, FastAPI valida las peticiones, serializa las respuestas y genera
+documentación interactiva de la API sin código adicional. El servidor se ejecuta
+sobre \emph{uvicorn} (servidor ASGI) y, en producción, con varios procesos de
+trabajo.
+
+La aplicación se compone en \texttt{main.py}, que crea la instancia de FastAPI,
+registra los enrutadores de las familias de \emph{endpoints}, configura el
+\emph{middleware} de CORS a partir de los orígenes permitidos por configuración y
+gestiona el ciclo de vida del \emph{pool} de conexiones mediante un
+\emph{lifespan}, que lo abre al arrancar y lo cierra al terminar. La estructura del
+código respeta la arquitectura en capas del diseño: la capa de API (paquete
+\texttt{api}), la de servicios (\texttt{services}), la de modelos
+(\texttt{models}) y el núcleo transversal (\texttt{core}).
 
 \subsection{Endpoints del catálogo y comparador}
+\label{sec:impl-backend-catalogo}
 
-\subsection{Modelos de datos y validación}
+Los \emph{endpoints} del catálogo se definen en \texttt{api/cars.py}. El de
+listado (\texttt{GET /api/cars}) declara cada filtro como un parámetro de
+consulta con su tipo y sus restricciones (por ejemplo, los rangos de precio y
+potencia se validan como no negativos, y la paginación se acota a un máximo por
+página), recoge los filtros en un diccionario y delega en el repositorio. Se
+completan con el \emph{endpoint} de ficha individual (\texttt{GET
+/api/cars/\{id\}}), que responde con un error 404 si el vehículo no existe; el de
+comparación (\texttt{POST /api/compare}), que recibe una lista de identificadores;
+y el de metadatos de filtros (\texttt{GET /api/filters/meta}), que devuelve los
+valores realmente presentes en la base de datos para poblar dinámicamente los
+desplegables de la interfaz. Todas estas respuestas se declaran con
+\texttt{response\_model}, de modo que FastAPI valida la salida contra el modelo
+\texttt{Version} y fija el contrato de datos con el \emph{frontend}.
+
+\subsection{El repositorio y la construcción segura de consultas}
+\label{sec:impl-backend-repositorio}
+
+Toda la interacción con la base de datos se concentra en
+\texttt{services/cars\_repository.py}, que actúa como frontera entre la lógica de
+negocio y el SQL. Las consultas del catálogo se construyen dinámicamente: la
+función \texttt{\_construir\_where} traduce cada filtro presente en el diccionario
+en una condición de la cláusula \texttt{WHERE} y omite los ausentes. Admite
+igualdades simples, rangos numéricos y filtros de pertenencia a un conjunto, que
+generan una condición \texttt{= ANY(...)} cuando llegan varios valores (por
+ejemplo, varios combustibles a la vez).
+
+La seguridad es el aspecto más cuidado de este módulo. Los valores aportados por
+el usuario se pasan siempre como parámetros vinculados (\texttt{\%(...)s}), nunca
+por interpolación de cadenas, lo que elimina por construcción el riesgo de
+inyección de SQL. En los pocos casos en que es inevitable insertar un
+identificador en la estructura de la consulta (el campo por el que ordenar, o el
+campo y la operación de una agregación), ese identificador se valida previamente
+contra una lista blanca: el orden se resuelve buscando la clave en un diccionario
+cerrado (\texttt{ORDENES\_VALIDOS}), y la función \texttt{agregar} comprueba la
+métrica, el campo y la agrupación contra conjuntos predefinidos
+(\texttt{METRICAS\_AGREGAR}, \texttt{CAMPOS\_AGREGABLES},
+\texttt{AGRUPACIONES\_VALIDAS}) y lanza una excepción ante cualquier valor fuera de
+ellos antes de construir la consulta. Esta invariante de seguridad está documentada
+en el propio código para que no se relaje al añadir nuevos campos. Por último,
+todos los órdenes colocan los valores nulos al final (\texttt{NULLS LAST}) y añaden
+un desempate por \texttt{id}, lo que garantiza una paginación estable.
+
+\subsection{Endpoints de servicio y configuración}
+\label{sec:impl-backend-servicio}
+
+Completan la API el \emph{endpoint} de comprobación de estado
+(\texttt{GET /health}), que la orquestación usa para verificar que el servicio
+está vivo, y el de ingesta (\texttt{POST /ingest}). Este último, definido en
+\texttt{api/routes.py}, interpreta el nombre de archivo recibido como relativo al
+directorio compartido y, antes de abrirlo, comprueba que la ruta resuelta sigue
+estando dentro de ese directorio, rechazando con un error cualquier intento de
+salir de él (\emph{path traversal}).
+
+La configuración se centraliza en \texttt{core/config.py} mediante
+\emph{pydantic-settings}: la cadena de conexión a la base de datos, la clave del
+proveedor de IA, el modelo a utilizar y los orígenes CORS se leen de variables de
+entorno y se validan al arranque, de forma que el código no contiene ningún
+secreto. Por último, el \emph{backend} incorpora dos mecanismos de seguridad
+opcionales para los \emph{endpoints} sensibles (\texttt{/chat} e \texttt{/ingest}),
+implementados como dependencias de FastAPI en \texttt{api/dependencies.py}: una
+limitación de frecuencia de peticiones por IP y una autenticación por clave de
+API. Ambos están \textbf{inertes por defecto} y solo se activan al definir las
+variables de entorno correspondientes; la comparación de la clave se hace en
+tiempo constante (\texttt{secrets.compare\_digest}) para no filtrar información
+por el tiempo de respuesta.
 
 \section{Integración de la inteligencia artificial}
+\label{sec:impl-ia}
+
+La integración con el modelo de lenguaje se realiza a través de la API de
+\emph{chat completions} compatible con OpenAI, empleando su biblioteca cliente
+oficial para Python. La lógica se reparte en dos módulos: \texttt{api/chat.py},
+que contiene el \emph{endpoint} \texttt{/chat} y orquesta el pipeline completo, y
+\texttt{services/ai\_service.py}, que encapsula el cliente del modelo, la
+definición de las herramientas y su ejecución contra el repositorio. Esta
+separación mantiene la lógica de IA aislada del resto del \emph{backend} y
+facilita su prueba.
 
 \subsection{Traducción de lenguaje natural a filtros estructurados}
+\label{sec:impl-ia-tools}
+
+El enfoque se basa en el patrón de \emph{tool-calling}: en vez de pedir al modelo
+que genere SQL, se le ofrece un catálogo cerrado de cuatro herramientas de alto
+nivel (\texttt{buscar\_coches}, \texttt{obtener\_coche}, \texttt{comparar} y
+\texttt{agregar}), declaradas en la lista \texttt{TOOLS} de
+\texttt{ai\_service.py}. Cada herramienta se describe con un esquema JSON que
+enumera sus argumentos, y la tarea del modelo se reduce a traducir la intención
+del usuario en una llamada a la herramienta adecuada con los argumentos correctos.
+
+La pieza determinante es el esquema de filtros (\texttt{\_FILTROS\_SCHEMA}), que
+actúa como contrato estricto: para los atributos categóricos, restringe los
+valores admisibles mediante listas \texttt{enum} al vocabulario canónico definido
+en la normalización. Así, el campo de combustible solo acepta los nueve valores
+canónicos, lo que impide al modelo pedir un «híbrido» genérico o un «diésel» con
+otra grafía y le obliga a traducir la intención del usuario a los valores que
+existen en la base de datos. El propio esquema y las listas de enum se construyen a
+partir de las mismas constantes que valida el repositorio (\texttt{ORDENES\_VALIDOS},
+\texttt{CAMPOS\_AGREGABLES}…), de modo que la descripción que recibe el modelo y la
+validación del servidor no pueden divergir.
+
+Esta orientación experta se refuerza con un extenso \emph{prompt} de sistema
+(\texttt{SYSTEM\_PROMPT}) que codifica el conocimiento de dominio: las
+equivalencias entre el lenguaje coloquial y el vocabulario canónico, las reglas
+para interpretar peticiones vagas («algo para la familia», «un coche para
+ciudad»), la prioridad por defecto del mercado actual, el tratamiento de casos
+delicados como el consumo de los híbridos enchufables y el procedimiento a seguir
+cuando el usuario filtra por un atributo no soportado. A este \emph{prompt} se
+concatena una instrucción de idioma que afecta únicamente a la prosa generada,
+nunca a los datos del vehículo.
+
+El listado~\ref{lst:filtros-schema} muestra un extracto del esquema de filtros:
+el atributo \texttt{combustible} se declara como un \emph{array} cuyos elementos
+están restringidos por una lista \texttt{enum} al vocabulario canónico, de modo
+que el modelo no puede emitir un valor fuera de él.
+
+\begin{lstlisting}[language=Python,caption={Extracto de \texttt{\_FILTROS\_SCHEMA}: el \texttt{enum} cerrado del combustible (\texttt{ai\_service.py}).},label={lst:filtros-schema}]
+_FILTROS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "combustible": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "gasolina", "gasoleo", "gas", "electrico",
+                    "mhev_gasolina", "mhev_gasoleo", "hev_gasolina",
+                    "phev_gasolina", "phev_gasoleo",
+                ],
+            },
+            "description": (
+                "Fuente fosil + electrificacion. NO existe 'hibrido' ni "
+                "'diesel'. Mapea: 'diesel'->['gasoleo'], 'GLP'->['gas']..."
+            ),
+        },
+        # ... resto de filtros (carroceria, precio_min, solo_vigentes, ...) ...
+    },
+    "additionalProperties": False,
+}
+\end{lstlisting}
 
 \subsection{Bucle de \textit{tool-calling} sobre datos reales}
+\label{sec:impl-ia-loop}
+
+El bucle de razonamiento se implementa en la función
+\texttt{\_ejecutar\_loop\_tools} de \texttt{chat.py}. En cada iteración se envía al
+modelo la conversación junto con la descripción de las herramientas; si el modelo
+decide llamar a una o varias, el \emph{backend} las ejecuta
+(\texttt{ai\_service.ejecutar\_tool}) contra la base de datos, añade los resultados
+a la conversación como mensajes de rol \texttt{tool} y reitera. El ciclo continúa
+hasta que el modelo deja de pedir herramientas, con un límite máximo de iteraciones
+(\texttt{MAX\_ITERACIONES\_TOOLS}) que acota el coste y evita bucles infinitos; un
+umbral de advertencia inferior registra en los \emph{logs} las consultas
+anormalmente largas para su análisis. La ejecución de cada herramienta se envuelve
+en un \texttt{try/except}, de modo que un fallo concreto no aborta la conversación,
+sino que se devuelve al modelo como un resultado de error sobre el que puede
+razonar.
+
+Este diseño garantiza la invariante del sistema: toda cifra que aparece en una
+respuesta procede de una consulta real a la base de datos. El modelo aporta la
+interpretación y la redacción, pero los datos los pone siempre la base de datos.
+
+Dentro de \texttt{buscar\_coches} se distingue entre consultas objetivas y
+exploratorias. Cuando la petición tiene un criterio inequívoco y el modelo
+solicita un orden explícito («el más barato», «el más potente»), la búsqueda
+devuelve ese resultado de forma determinista. Cuando la petición es cualitativa y
+se pide sin orden, se recupera un conjunto de candidatos más amplio y se selecciona
+entre ellos con un muestreo sesgado (\texttt{\_submuestra\_sesgada}): se asigna a
+cada candidato un peso decreciente según su relevancia y se extraen sin reemplazo,
+de modo que los más relevantes salen con más probabilidad pero dos consultas
+parecidas no devuelven siempre los mismos vehículos. Así se evita que el asistente
+resulte repetitivo sin mostrar por ello opciones de peor calidad. La función
+contempla además que el modelo a veces aplane los argumentos
+(\texttt{\_extraer\_filtros}) y reconstruye entonces el diccionario de filtros de
+forma tolerante.
 
 \subsection{Generación de respuestas explicadas}
+\label{sec:impl-ia-respuestas}
+
+Una vez recopilados los datos, una segunda fase del pipeline solicita al modelo la
+respuesta final como un documento estructurado de bloques tipados. Estos se
+definen en \texttt{models/chat.py} como una unión discriminada de Pydantic
+(\texttt{Block}) con cuatro variantes (texto, gráfica, tabla e imagen) y se exigen
+al modelo mediante un \emph{response format} de tipo \texttt{json\_schema} derivado
+del propio modelo (\texttt{\_response\_format}), lo que fuerza una salida
+verificable.
+
+La validación de la respuesta es defensiva (\texttt{\_validar\_con\_reintento}): el
+\emph{backend} comprueba que el JSON cumple el esquema y, si no lo cumple,
+reintenta una vez devolviendo al modelo el mensaje de error concreto; si tampoco
+así se obtiene una respuesta válida, entrega un bloque de texto de reserva
+(\texttt{\_envelope\_fallback}) en lugar de propagar un fallo a la interfaz.
+
+Dos decisiones de implementación trasladan la integridad de los datos a los
+elementos visuales. La primera es la hidratación de imágenes
+(\texttt{\_hidratar\_image\_blocks}): el modelo tiene prohibido emitir URLs de
+fotografías y solo puede indicar el identificador del vehículo en un bloque de
+imagen; es el \emph{backend} quien, en un paso posterior, recupera de la base de
+datos la URL real de la foto y la inserta, y descarta el bloque si el vehículo no
+existe o no tiene imagen. Para que esa URL no forme parte del esquema que se ofrece
+al modelo, el campo correspondiente se marca con \texttt{SkipJsonSchema}. La
+segunda afecta a las gráficas: se alimentan exclusivamente de la salida de la
+herramienta \texttt{agregar}, de modo que sus barras reflejan siempre valores
+calculados por la base de datos. Las etiquetas, unidades y títulos son metadatos de
+presentación que nunca modifican las cifras subyacentes, una separación que se
+documenta tanto en el modelo del \emph{backend} como en su espejo del
+\emph{frontend}.
 
 \section{Frontend con React}
+\label{sec:impl-frontend}
+
+La interfaz se ha implementado como una aplicación de página única con
+\emph{React} (versión 19) y \emph{TypeScript}, construida con la herramienta
+\emph{Vite}. El uso de TypeScript permite definir un tipo \texttt{Car} (en
+\texttt{lib/api.ts}) que es el espejo exacto del modelo \texttt{Version} del
+\emph{backend}, de modo que el contrato de datos queda verificado también en el
+lado del cliente. La capa de comunicación con la API se concentra en ese mismo
+módulo, que expone funciones tipadas para cada \emph{endpoint}
+(\texttt{sendChat}, \texttt{fetchCars}, \texttt{fetchCar},
+\texttt{fetchFiltersMeta}). La aplicación se organiza en torno a un componente
+\texttt{Layout} con una barra lateral que conmuta entre las cuatro vistas
+funcionales (asistente, catálogo, historial y favoritos), gobernadas por el
+estado de \texttt{App.tsx}.
 
 \subsection{Interfaz conversacional}
+\label{sec:impl-frontend-chat}
+
+La vista del asistente (\texttt{ChatAssistant.tsx}) gestiona el estado de la
+conversación y la comunicación con el \emph{endpoint} \texttt{/chat}. Al enviar un
+mensaje, reconstruye el historial completo en el formato que espera el
+\emph{backend}, serializando cada respuesta previa del asistente de nuevo a su JSON
+de bloques, y atiende los detalles de la interacción: muestra un indicador de
+escritura mientras se procesa la consulta, desplaza la vista automáticamente al
+último mensaje y, si la comunicación falla, presenta el error como un mensaje del
+propio asistente en lugar de como un fallo abrupto. Junto al campo de entrada
+figura de forma permanente el aviso de que la IA puede cometer errores.
+
+El problema propio de esta vista es la renderización de las respuestas
+estructuradas, resuelto en \texttt{MessageBubble.tsx}. El componente recorre la
+lista de bloques y delega cada uno, según su tipo, en un sub-componente
+especializado: el texto se interpreta como \emph{Markdown} (con la biblioteca
+\texttt{react-markdown} y soporte de tablas mediante \texttt{remark-gfm}); las
+tablas se pintan con desplazamiento horizontal; las gráficas se dibujan con la
+biblioteca \emph{Recharts}; y las imágenes se muestran como fichas con un botón
+para añadir el vehículo a favoritos. Este despacho por tipo permite que una misma
+respuesta combine, por ejemplo, un párrafo, una tabla y una gráfica.
+
+El componente de gráficas incorpora varias salvaguardas de presentación: recorta
+de forma determinista a un máximo de barras, oculta la leyenda cuando hay una sola
+serie, rota las etiquetas del eje cuando hay muchas categorías y, en las gráficas
+de tipo radar, normaliza cada eje a una escala común y muestra el valor real en la
+información emergente. Nada de esto altera los datos de origen, solo su
+presentación. Los colores se leen de variables CSS, de manera que las gráficas
+siguen el tema activo de la interfaz. El aspecto final de esta vista, con
+respuestas que combinan distintos tipos de bloque, se mostró en las
+figuras~\ref{fig:conversacion-grafica}, \ref{fig:conversacion-tabla}
+y~\ref{fig:conversacion-imagenes} del capítulo anterior.
 
 \subsection{Catálogo, filtros y comparador}
+\label{sec:impl-frontend-catalogo}
+
+La vista de catálogo (\texttt{Catalog.tsx}) implementa la exploración
+estructurada. Al montarse, recupera del \emph{backend} los metadatos de filtros y
+con ellos puebla dinámicamente los desplegables de marca, combustible, carrocería,
+tracción y transmisión, de modo que solo se ofrecen opciones que existen en la base
+de datos. Los filtros de rango y el buscador de modelo se combinan con la
+paginación, y la vista distingue de forma explícita los estados de carga, error y
+búsqueda sin resultados, y muestra en cada caso el componente adecuado (una rejilla
+de marcadores de posición durante la carga, un mensaje con opción de reintento ante
+un error, etc.). La separación entre los filtros que el usuario edita y los
+efectivamente aplicados evita relanzar la consulta en cada pulsación: la búsqueda
+solo se dispara al confirmar. El aspecto de esta vista se mostró en la
+figura~\ref{fig:catalogo-filtros} del capítulo anterior.
 
 \subsection{Favoritos e historial de consultas}
+\label{sec:impl-frontend-persistencia}
+
+Las funcionalidades de personalización (favoritos e historial) se resuelven
+íntegramente en el lado del cliente y persisten en el \texttt{localStorage} del
+navegador, sin cuentas de usuario ni almacenamiento en el servidor, en línea con el
+alcance del proyecto. Toda esta lógica se centraliza en \texttt{lib/storage.ts}.
+
+El reto está en mantener todas las vistas sincronizadas con los cambios, incluso
+entre varias pestañas abiertas. Se resuelve integrando la lectura del
+almacenamiento con el sistema de reactividad de React a través del hook
+\texttt{useSyncExternalStore}: cualquier modificación de los favoritos invalida una
+caché interna y notifica a los componentes suscritos, que se vuelven a renderizar de
+inmediato; y un \emph{listener} del evento \texttt{storage} del navegador propaga
+además los cambios realizados en otras pestañas. El historial agrupa las
+conversaciones en sesiones con un título derivado de la primera pregunta del
+usuario. Tanto la lectura de favoritos como la de sesiones es defensiva: se validan
+los datos leídos y se descartan las entradas con forma inválida, de modo que un
+\texttt{localStorage} corrupto no rompe la aplicación.
+
+\subsection{Preferencias de accesibilidad}
+\label{sec:impl-frontend-preferencias}
+
+El panel de preferencias (\texttt{SettingsDrawer.tsx}) se implementa como un cajón
+lateral accesible: declarado como diálogo modal (\texttt{role="dialog"},
+\texttt{aria-modal}), atrapa el foco dentro del panel ciclando con la tecla de
+tabulación, se cierra con la tecla de escape y devuelve el foco al control de origen
+al cerrarse. Reúne tres ajustes (tema, tamaño de fuente e idioma) gestionados por un
+contexto de React (\texttt{PreferencesContext.tsx}) que los persiste en
+\texttt{localStorage} con una lectura defensiva campo a campo.
+
+Cada preferencia se traduce en un cambio sobre el documento raíz mediante funciones
+puras (\texttt{applyPreferences.ts}), reutilizadas tanto por el contexto como por el
+\emph{script} de arranque: el tema conmuta un atributo en la raíz del documento que
+cambia la paleta de colores; el tamaño de fuente escala un único valor en la raíz,
+lo que, al estar toda la tipografía expresada en unidades relativas, redimensiona la
+interfaz proporcionalmente; y el idioma ajusta el atributo \texttt{lang} del
+documento y el sistema de internacionalización (\emph{i18next}), que traduce los
+textos propios de la aplicación sin tocar nunca los datos de los vehículos. Queda
+una consideración sobre el arranque: en \texttt{main.tsx}, las preferencias
+guardadas se aplican al documento \emph{antes} de montar React, lo que evita el
+destello visual que se produciría si la aplicación cargara primero con el tema por
+defecto y cambiara después. El panel de preferencias se mostró en la
+figura~\ref{fig:preferencias} del capítulo anterior.
 
 \section{Contenerización y despliegue con Docker}
+\label{sec:impl-docker}
+
+Todo el sistema se empaqueta y se orquesta con \emph{Docker} y \emph{Docker
+Compose}. Cada uno de los cuatro servicios (base de datos, \emph{backend},
+\emph{frontend} y \emph{scraper}) se ejecuta en su propio contenedor, definido por
+su respectivo \texttt{Dockerfile}, y todos comparten una misma red privada virtual
+(\texttt{appnet}) en la que se descubren por su nombre lógico.
+
+Los \texttt{Dockerfile} del \emph{backend}, el \emph{frontend} y el \emph{scraper}
+emplean construcciones multietapa con destinos diferenciados de desarrollo
+(\texttt{dev}) y producción (\texttt{prod}). Así se optimiza cada caso: en
+desarrollo, el \emph{backend} arranca con recarga automática y el \emph{frontend}
+con el servidor de desarrollo de Vite; en producción, el \emph{backend} se ejecuta
+con varios procesos de trabajo y el \emph{frontend} se compila a ficheros estáticos
+que sirve un servidor \emph{nginx} ligero. Las imágenes parten de variantes
+reducidas (\emph{slim}, \emph{alpine}) y el \emph{backend} ejecuta sus procesos con
+un usuario sin privilegios.
+
+La orquestación se reparte en tres ficheros de Compose que se combinan: uno base
+(\texttt{docker-compose.yml}) con la definición común de los servicios, los
+volúmenes y la red; uno de \emph{override} (\texttt{docker-compose.override.yml}),
+que se aplica automáticamente en desarrollo, publica los puertos y monta el código
+fuente como volumen para la recarga en caliente; y uno de producción
+(\texttt{docker-compose.prod.yml}), que selecciona los destinos \texttt{prod} y
+configura la política de reinicio. Esta separación permite levantar el sistema en
+uno u otro modo sin duplicar la configuración común.
+
+El fichero base recoge además dos decisiones de orquestación del diseño. La primera
+es la persistencia: se definen dos volúmenes nombrados, uno para los datos de
+PostgreSQL (\texttt{pgdata}) y otro compartido entre el \emph{scraper} y el
+\emph{backend} (\texttt{scraper\_output}), a través del cual el primero entrega el
+archivo de datos al segundo. La segunda es el arranque ordenado mediante
+\emph{healthchecks} y dependencias condicionales: el \emph{backend} no se inicia
+hasta que la base de datos supera su comprobación de salud (\texttt{pg\_isready}), y
+ni el \emph{frontend} ni el \emph{scraper} arrancan hasta que el \emph{backend}
+responde correctamente a su \emph{endpoint} \texttt{/health}. Con ello se evitan los
+errores transitorios de arranque sin recurrir a esperas arbitrarias. Toda la
+configuración sensible (credenciales de la base de datos, clave del proveedor de IA,
+frecuencia del \emph{scraping}, orígenes CORS) se inyecta como variables de entorno,
+de modo que los secretos quedan fuera de las imágenes y del código.
+
+La diferencia entre los modos de desarrollo y producción se concreta en el
+comando con el que arranca cada servicio, determinado por el destino multietapa
+seleccionado. La tabla~\ref{tab:targets-docker} resume ambos casos.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.4cm}p{5.2cm}p{4.4cm}}
+\hline
+\textbf{Servicio} & \textbf{Desarrollo (\texttt{dev})} & \textbf{Producción (\texttt{prod})} \\
+\hline
+\texttt{bd} & \multicolumn{2}{p{9.6cm}}{Imagen \texttt{postgres:16-alpine} (sin etapa multietapa)} \\
+\hline
+\texttt{backend} & \texttt{uvicorn --reload} (recarga en caliente) & \texttt{uvicorn --workers 4} \\
+\hline
+\texttt{frontend} & \texttt{vite dev} (servidor de desarrollo) & \texttt{nginx} (sirve estáticos compilados) \\
+\hline
+\texttt{scraper} & \texttt{sleep infinity} (inerte; \emph{crawl} manual) & \texttt{supercronic} (cron que ejecuta \texttt{run\_scrape.sh}) \\
+\hline
+\end{tabular}
+\caption{Comando de arranque de cada servicio según el destino multietapa
+(\texttt{dev}/\texttt{prod}) de su \texttt{Dockerfile}.}
+\label{tab:targets-docker}
+\end{table}
 
 
 % ---------------------------------------------------------------------
