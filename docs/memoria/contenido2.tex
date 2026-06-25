@@ -1628,14 +1628,720 @@ seleccionado. La tabla~\ref{tab:targets-docker} resume ambos casos.
 %  7. PRUEBAS Y EVALUACIÓN
 % ---------------------------------------------------------------------
 \chapter{Pruebas y evaluación}
+\label{cap:pruebas}
+
+Una vez descritas la implementación y la contenerización del sistema, este
+capítulo expone cómo se ha comprobado que \emph{autoAI} funciona como se
+pretendía. Verificar un sistema con un componente de inteligencia artificial
+plantea una dificultad particular: junto a la lógica determinista, que se puede
+contrastar con resultados exactos, conviven comportamientos que no lo son, como
+la traducción de lenguaje natural a filtros o la variación deliberada de las
+respuestas exploratorias, sobre los que no cabe una aserción de igualdad. La
+estrategia adoptada distingue ambos planos. Para lo determinista (normalización,
+repositorio, validación de respuestas, tolerancia a fallos) se emplea la prueba
+automatizada con resultados exactos; para lo que no lo es, comprobaciones de
+invariantes y de propiedades junto con una evaluación cualitativa. El capítulo
+describe primero esa estrategia, después las pruebas del \emph{backend} y del
+pipeline de IA y las del \emph{frontend}, luego la evaluación de la calidad de
+las respuestas del asistente y, por último, una discusión de lo aprendido y de
+las limitaciones del enfoque.
 
 \section{Estrategia de pruebas}
+\label{sec:test-estrategia}
+
+La estrategia de pruebas se ha guiado por un principio: respaldar con pruebas
+automatizadas las funcionalidades críticas, las que, de fallar silenciosamente,
+corromperían los datos o degradarían la experiencia, con un coste de
+mantenimiento proporcionado al de un Trabajo de Fin de Grado desarrollado por una
+sola persona. En lugar de perseguir una cobertura exhaustiva de cada línea, se
+han priorizado los puntos del sistema donde se concentra la complejidad y el
+riesgo: la normalización de datos heterogéneos, la construcción de consultas a la
+base de datos, la validación de las respuestas del modelo de lenguaje, la
+tolerancia a registros malformados durante la ingesta y los componentes de
+interfaz con lógica propia (paginación, persistencia local, renderizado de
+bloques). Este enfoque responde al requisito RNF-18, que exige pruebas
+automatizadas tanto en el \emph{backend} como en el \emph{frontend} para las
+funcionalidades de normalización, repositorio de datos y componentes de interfaz.
+
+\subsection{Niveles y tipos de prueba}
+\label{sec:test-niveles}
+
+Las pruebas se reparten en varios niveles, que se corresponden con las capas del
+sistema descritas en el diseño:
+
+\begin{description}
+  \item[Pruebas unitarias.] Verifican una unidad de código aislada, sin
+        dependencias externas (ni base de datos ni red). Es el nivel más numeroso
+        y abarca los \emph{parsers} de normalización, las funciones puras de
+        validación de modelos y los \emph{helpers} de formato de la interfaz. Por
+        no tocar recursos externos, son rápidas y deterministas.
+
+  \item[Pruebas de integración.] Comprueban la interacción real entre
+        componentes; en este proyecto, fundamentalmente entre el repositorio de
+        vehículos y una base de datos \emph{PostgreSQL} real. Estas pruebas
+        ejecutan SQL auténtico sobre un esquema cargado desde
+        \texttt{init.sql}, de modo que validan el código Python y, con él, el
+        propio esquema y las consultas.
+
+  \item[Pruebas de componente (\emph{frontend}).] Renderizan componentes de
+        React en un DOM simulado y comprueban su comportamiento ante la
+        interacción del usuario (pulsaciones, navegación entre páginas), aislando
+        las llamadas a la API mediante \emph{mocks}.
+
+  \item[Pruebas de extremo a extremo del pipeline.] Ejercitan el
+        \emph{endpoint} \texttt{/chat} completo a través de un cliente de
+        pruebas, sustituyendo únicamente la frontera externa (el proveedor del
+        modelo de lenguaje), de forma que se recorre todo el flujo interno del
+        \emph{backend} —bucle de herramientas, generación del documento de
+        bloques, validación, reintento, \emph{fallback} e hidratación de
+        imágenes— sin depender de un servicio externo.
+\end{description}
+
+Una decisión común a todos los niveles es el aislamiento de las fronteras no
+deterministas o costosas: el proveedor del modelo de lenguaje se sustituye
+siempre por un doble de prueba (\emph{mock}) que devuelve respuestas controladas,
+y la red nunca se invoca durante las pruebas. Las pruebas resultan así
+reproducibles, rápidas y gratuitas, y permiten provocar a voluntad escenarios
+difíciles de reproducir con un modelo real, como una respuesta mal formada que
+dispare el reintento. La base de datos es la única dependencia externa que sí se
+usa de forma real, por dos razones: es determinista y aporta una garantía que un
+\emph{mock} no podría dar, la de que el SQL generado es válido contra el motor
+concreto.
+
+\subsection{Herramientas e infraestructura de pruebas}
+\label{sec:test-herramientas}
+
+Las pruebas del \emph{backend} se han escrito con \textbf{Pytest}, acompañado de
+\textbf{pytest-cov} para la medición de cobertura. La configuración (recogida en
+\texttt{pytest.ini}) fija el directorio de pruebas, activa por defecto el informe
+de cobertura sobre el paquete \texttt{src} y define un marcador
+\texttt{integration} para distinguir las pruebas que requieren una base de datos
+real. Un fichero de configuración global (\texttt{conftest.py}) fija una cadena
+de conexión ficticia \emph{antes} de que se importe la configuración de la
+aplicación, de modo que los modelos de configuración —donde la conexión a la base
+de datos es un parámetro obligatorio— puedan construirse sin un fichero de
+entorno real y sin abrir el \emph{pool} de conexiones; las pruebas que no tocan
+la base de datos se ejecutan así sin ninguna infraestructura.
+
+Las pruebas del \emph{frontend} se han escrito con \textbf{Vitest} y
+\textbf{Testing Library} sobre un DOM simulado con \emph{jsdom}, configurado en
+\texttt{vite.config.ts} y con un fichero de preparación común
+(\texttt{src/test/setup.ts}). Testing Library impone un estilo de prueba centrado
+en lo que percibe el usuario: los elementos se localizan por su rol y su texto
+accesible, en lugar de por detalles internos de implementación. Esto hace las
+pruebas más robustas frente a refactorizaciones y, de paso, ejercita la
+accesibilidad de los componentes.
+
+La tabla~\ref{tab:test-herramientas} resume las herramientas de prueba empleadas
+en cada componente, qué frontera aíslan y qué niveles de prueba cubren.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{2.0cm}p{4.2cm}p{3.1cm}p{3.0cm}}
+\hline
+\textbf{Componente} & \textbf{\emph{Framework} y utilidades} & \textbf{Aísla} &
+\textbf{Niveles} \\
+\hline
+\emph{Backend} &
+Pytest~8.3.4, pytest-cov~6.0.0, \texttt{TestClient} de FastAPI, \emph{psycopg} &
+\emph{Mock} del LLM; PostgreSQL~16 real &
+Unidad, integración, E2E, \emph{smoke} \\
+\hline
+\emph{Frontend} &
+Vitest~3, Testing Library, \emph{user-event}, \emph{jsdom}~25 &
+\emph{Mock} de la API (\emph{fetch}) &
+Unidad, componente \\
+\hline
+\end{tabular}
+\caption{Herramientas de prueba por componente, fronteras aisladas y niveles
+cubiertos.}
+\label{tab:test-herramientas}
+\end{table}
+
+\subsection{Pruebas como parte de la integración continua}
+\label{sec:test-ci}
+
+Toda la batería de pruebas se ejecuta automáticamente en cada \emph{push} al
+repositorio mediante el flujo de integración continua descrito en la
+Sección~\ref{sec:met-actions}. El trabajo de \emph{backend} levanta para ello un
+\emph{service container} con \emph{PostgreSQL}~16 y le apunta la cadena de
+conexión, de modo que las pruebas de integración (que en la máquina del
+desarrollador se omiten si no hay una base de datos accesible) sí se ejecutan en
+el servidor de integración contra una base de datos real. El trabajo de
+\emph{frontend} ejecuta las pruebas con Vitest tras el \emph{linter} y la
+construcción. Las pruebas dejan así de depender de una ejecución manual: se
+disparan con cada cambio y bloquean la consolidación de regresiones.
 
 \section{Pruebas del backend y del pipeline de IA}
+\label{sec:test-backend}
+
+El \emph{backend} concentra la mayor parte de las pruebas del sistema, por ser el
+componente que aloja la lógica de negocio crítica. Se reparten en ocho módulos de
+prueba que cubren, de forma independiente, la normalización, el repositorio, la
+validación del pipeline de IA, la variedad de las búsquedas exploratorias, la
+tolerancia a fallos de la ingesta y los mecanismos de seguridad. La
+tabla~\ref{tab:test-backend} los resume.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{5.6cm}p{5.2cm}p{1.4cm}}
+\hline
+\textbf{Módulo de prueba} & \textbf{Qué verifica} & \textbf{Tipo} \\
+\hline
+\texttt{test\_normalization\_parsers} & \emph{Parsers} de saneamiento y
+unificación de vocabularios & Unidad \\
+\texttt{test\_cars\_repository\_\allowbreak integration} & Repositorio contra
+PostgreSQL real (filtros, orden, agregación) & Integr. \\
+\texttt{test\_chat\_pipeline} & Validación, reintento, \emph{fallback} e
+hidratación del \emph{envelope} & Unidad / E2E \\
+\texttt{test\_chat\_validacion} & Validación de los modelos de la petición de
+\texttt{/chat} & Unidad / E2E \\
+\texttt{test\_buscar\_coches\_variedad} & Determinismo y sesgo de la búsqueda
+exploratoria & Propiedad \\
+\texttt{test\_ingest\_tolerante} & Tolerancia a registros malformados en la
+ingesta & Unidad \\
+\texttt{test\_require\_api\_key} & Autenticación opcional por clave (tiempo
+constante) & Unidad \\
+\texttt{test\_smoke} & Disponibilidad del \emph{endpoint} \texttt{/health} &
+\emph{Smoke} \\
+\hline
+\end{tabular}
+\caption{Módulos de prueba del \emph{backend} y su cometido.}
+\label{tab:test-backend}
+\end{table}
+
+\subsection{Pruebas de la normalización}
+\label{sec:test-normalizacion}
+
+La normalización es, como se argumentó en el diseño, una de las partes más
+delicadas del sistema, y por ello es la que recibe el mayor número de pruebas
+unitarias. Estas pruebas ejercitan los \emph{parsers} puros (sin base de datos ni
+red) sobre los formatos reales que produce el portal de origen, comprobando tanto
+el camino feliz como los casos degenerados:
+
+\begin{itemize}
+  \item El \emph{saneamiento de escalares} se prueba con entradas tomadas de la
+        fuente: de «\texttt{177 CV / 130 kW}» se exige la cifra en caballos
+        (\texttt{177}); de «\texttt{4.165 mm}» el valor en milímetros sin el
+        separador de miles; de «\texttt{7,2 l/100 km}» el número con la coma
+        decimal convertida a punto; y de rangos de fechas como
+        «\texttt{(03/2021 - 06/2023)}» las dos fechas que delimitan la vigencia.
+        Para cada \emph{parser} se comprueba además que una entrada vacía o el
+        marcador de dato ausente (un guion) producen un valor nulo en lugar de un
+        error, de acuerdo con el principio de que un dato problemático nunca debe
+        abortar la conversión.
+
+  \item La \emph{unificación de vocabularios} se prueba sobre el caso más
+        difícil, el del combustible: se verifica que un eléctrico sin
+        combustión declarada se clasifica como \texttt{electrico}, que el nivel
+        de electrificación se infiere del nombre comercial (microhíbrido, híbrido
+        autorrecargable o híbrido enchufable) y que la base fósil se combina con
+        ese nivel para dar el valor canónico, por ejemplo \texttt{phev\_gasolina}.
+        La traducción de las carrocerías del portal al vocabulario canónico se
+        comprueba de manera análoga.
+
+  \item La \emph{idempotencia} se prueba explícitamente: aplicar la
+        normalización a un valor ya canónico debe devolver ese mismo valor sin
+        alterarlo, tanto para el combustible como para la carrocería. Esta
+        propiedad garantiza que el catálogo pueda reimportarse sin corromper los
+        datos ya normalizados.
+\end{itemize}
+
+\subsection{Pruebas de integración del repositorio}
+\label{sec:test-repositorio}
+
+El repositorio de vehículos se prueba contra una base de datos \emph{PostgreSQL}
+real en lugar de contra un doble de prueba, porque su responsabilidad es
+generar SQL correcto: un \emph{mock} no detectaría una consulta sintácticamente
+válida en Python pero errónea contra el motor. Las pruebas son autocontenidas. Un
+\emph{fixture} recrea la tabla \texttt{cars} desde el mismo \texttt{init.sql} que
+usa producción e inserta un conjunto de datos sintético y conocido (catorce
+versiones con combustibles, carrocerías, precios, potencias, plazas y estados de
+vigencia elegidos a propósito), de modo que se pueden afirmar conteos y órdenes
+exactos. Si no hay una base de datos accesible, por ejemplo en la máquina del
+desarrollador sin Docker, un \emph{fixture} de sesión omite todo el módulo en
+lugar de fallar; en la integración continua, donde el \emph{service container} de
+\emph{PostgreSQL} está vivo, las pruebas se ejecutan.
+
+Sobre ese conjunto controlado se verifican las garantías del repositorio que
+sostienen los requisitos del catálogo y del asistente: el conteo total sin
+filtros, la paginación con páginas disjuntas (RF-01), los filtros de igualdad
+simple, de pertenencia a un conjunto y de rango (RF-02), el filtro de versiones
+vigentes mediante la condición de fecha de fin nula, la ordenación determinista
+por distintos criterios (RF-06), la recuperación de una ficha por su
+identificador y el caso de identificador inexistente (RF-04), la comparación que
+preserva el orden de entrada solicitado (RF-05), las agregaciones (recuento y
+media agrupada por una dimensión, RF-12) y los valores de los filtros que expone
+la base de datos para la interfaz (RF-03). Al partir de un \emph{dataset} con
+valores escogidos, las aserciones son exactas: por ejemplo, que la media de
+precio de los eléctricos es la esperada, o que el filtro de potencia mínima
+devuelve exactamente el subconjunto previsto.
+
+\subsection{Pruebas del pipeline de IA}
+\label{sec:test-pipeline}
+
+El pipeline de inteligencia artificial es, junto con la normalización, el
+componente con un comportamiento más difícil de verificar, porque su corazón es
+una llamada a un modelo de lenguaje externo no determinista. La estrategia
+consiste en aislar esa frontera, sustituyendo el cliente del modelo por un doble
+de prueba que devuelve respuestas predeterminadas, y en probar después toda la
+maquinaria interna del \emph{backend} que rodea a esa llamada, que sí es
+determinista y sí es responsabilidad del sistema.
+
+Las pruebas se organizan en dos planos. En el plano de unidad se verifican por
+separado las cuatro piezas del tratamiento de la respuesta del modelo, que
+materializan los requisitos RF-11 y RF-15:
+
+\begin{itemize}
+  \item La \emph{validación del documento de bloques} (\emph{envelope}):
+        un documento bien formado se acepta y se reconoce el tipo de cada bloque;
+        un contenido vacío, un JSON inválido o un bloque con un tipo desconocido
+        provocan el error esperado. Queda así comprobado que el contrato de salida
+        del asistente se hace cumplir sin excepciones.
+
+  \item El \emph{reintento}: ante una primera respuesta inválida, el sistema
+        realiza exactamente una llamada adicional al modelo indicándole el error,
+        y si esa segunda respuesta es válida la acepta; se verifica además que en
+        la conversación se inserta la instrucción de corrección.
+
+  \item El \emph{fallback}: si el reintento tampoco produce una respuesta
+        válida, el sistema devuelve un bloque de texto de reserva con un mensaje
+        controlado, en lugar de propagar un fallo a la interfaz.
+
+  \item La \emph{hidratación de imágenes}: un bloque de imagen que solo contiene
+        el identificador del vehículo se completa con la URL real de la foto
+        recuperada de la base de datos; si el vehículo no existe o no tiene foto,
+        el bloque se descarta sin afectar al resto del documento. La prueba
+        confirma la invariante de que el modelo nunca emite URLs.
+\end{itemize}
+
+En el plano de extremo a extremo, las mismas situaciones se ejercitan a través
+del \emph{endpoint} \texttt{/chat} con un cliente de pruebas, recorriendo todo el
+flujo interno: el bucle de herramientas, la generación del documento, la
+validación, el reintento, el \emph{fallback} y la hidratación. Un doble de prueba
+configurable permite encadenar varias respuestas del modelo y simular, por
+ejemplo, una primera respuesta válida, una secuencia inválida-inválida que fuerza
+el \emph{fallback} o una respuesta con un bloque de imagen que dispara la
+hidratación. Por separado se valida la capa de entrada del \emph{endpoint}: que
+se rechazan los mensajes con el rol de sistema (para impedir que un cliente
+inyecte instrucciones de sistema), que se respetan los límites de longitud de los
+mensajes y de número de turnos, y que una lista de mensajes vacía produce un
+error controlado. Estas comprobaciones cubren la robustez del contrato de la API
+frente a entradas maliciosas o mal formadas.
+
+Estas pruebas se entienden mejor sobre el flujo del pipeline ya descrito en el
+capítulo de diseño: el bucle de herramientas se corresponde con la
+figura~\ref{fig:consulta-fase1}, la generación y validación del documento
+de bloques —con su rama de reintento y \emph{fallback}— con la
+figura~\ref{fig:consulta-fase2}, y la hidratación de imágenes con la
+figura~\ref{fig:consulta-hidratacion}. Cada una de las pruebas anteriores
+ejercita uno de esos tramos, de modo que, en conjunto, ninguna rama del
+tratamiento de la respuesta del modelo queda sin verificar.
+
+\subsection{Pruebas de propiedad de la búsqueda exploratoria}
+\label{sec:test-variedad}
+
+La búsqueda exploratoria, diseñada (Sección~\ref{sec:diseno-pipeline-ia}) para
+que dos consultas cualitativas parecidas no devuelvan siempre los mismos
+vehículos, es un caso especialmente ilustrativo. Aquí no cabe una aserción de
+igualdad, porque el resultado es variable a propósito, así que se recurre a
+pruebas de propiedad, que comprueban invariantes estadísticas en lugar de valores
+exactos. Sustituyendo el repositorio por un \emph{pool} fijo de vehículos, se
+verifica que:
+
+\begin{itemize}
+  \item cuando la consulta lleva un criterio de orden objetivo (la rama
+        determinista), el resultado es estable byte a byte entre llamadas
+        idénticas y respeta el orden pedido, sin barajar;
+  \item cuando la consulta es exploratoria (sin orden), se devuelve el número
+        de resultados solicitado, sin repetidos y todos pertenecientes al
+        \emph{pool}, y se solicita a la base de datos un conjunto de candidatos
+        mayor que el límite, respetando un tope máximo;
+  \item a lo largo de muchas ejecuciones con los mismos filtros aparece más de
+        una combinación de resultados (la variación ocurre de hecho) y, aun así,
+        el muestreo está sesgado hacia los mejores candidatos: el primer vehículo
+        del \emph{pool} aparece bastante más a menudo que el último. Esta última
+        comprobación se formula con un margen holgado para que la prueba no sea
+        frágil pese a depender del azar.
+\end{itemize}
+
+Este módulo muestra cómo verificar de forma automatizada un comportamiento no
+determinista a propósito: en vez de comprobar qué devuelve, se comprueban las
+propiedades que su distribución debe cumplir.
+
+\subsection{Pruebas de la ingesta tolerante a fallos y de la seguridad}
+\label{sec:test-ingesta-seguridad}
+
+La tolerancia a fallos de la ingesta (RF-22) se prueba alimentando al proceso un
+lote que mezcla registros válidos con registros defectuosos (uno al que le falta
+un campo obligatorio y un elemento que ni siquiera es un objeto) y sustituyendo
+el guardado en la base de datos por un doble de prueba. Se verifica que los
+registros correctos se procesan pese a los errores y que el informe resultante
+refleja con exactitud cuántos se leyeron, cuántos se validaron y cuántos se
+guardaron, además de identificar cada fallo por su posición en el lote. Queda así
+confirmado que un dato individual inválido no aborta la importación del conjunto,
+la garantía de robustez que exigía el diseño.
+
+En cuanto a la seguridad, se prueba el mecanismo opcional de autenticación por
+clave de API (RNF-11). El caso de mayor interés es una petición sin clave cuando
+la autenticación está activada: la comprobación debe devolver un error de no
+autorizado y no un fallo interno, lo que obliga a tratar con cuidado la
+comparación en tiempo constante que evita fugas de información por temporización.
+Se verifican los cuatro escenarios (mecanismo inerte cuando no hay clave
+configurada, clave correcta, clave incorrecta y ausencia de clave) y, en los dos
+últimos, el código de error esperado. La protección frente a inyección de SQL
+(RNF-09) y la restricción de rutas en la ingesta (RNF-10) quedan cubiertas de
+forma indirecta: la primera, por las pruebas de integración del repositorio, que
+ejercitan la construcción parametrizada de consultas y la validación por listas
+blancas de los nombres de campo y de orden; la segunda, por el diseño del propio
+\emph{endpoint}, que rechaza por construcción las rutas fuera del directorio
+autorizado.
+
+\section{Pruebas del \emph{frontend}}
+\label{sec:test-frontend}
+
+Las pruebas del \emph{frontend} se centran en los componentes y módulos con
+lógica propia, no en la presentación, con el mismo criterio de probar lo que
+entraña riesgo. Se agrupan en cinco módulos que cubren el formato de datos, la
+persistencia local, las tarjetas de vehículo, la paginación del catálogo y el
+renderizado de las respuestas estructuradas del asistente.
+
+\subsection{Formato de datos y persistencia local}
+\label{sec:test-frontend-datos}
+
+Los \emph{helpers} de formato se prueban como funciones puras: que un valor
+ausente se muestra como un guion en lugar de un cero o un vacío engañoso
+(coherente con el tratamiento de nulos del modelo de datos), que el precio se
+formatea como moneda sin decimales y con separador de miles, que las claves de
+combustible se traducen a su etiqueta legible y que el cero se trata como un valor
+válido y no como un dato ausente. Estas pruebas, en apariencia menores, blindan la
+frontera donde un nulo del \emph{backend} podría convertirse en un dato
+incorrecto en pantalla.
+
+La persistencia local (favoritos e historial, RF-16 y RF-17) recibe una atención
+especial porque es donde se concentra la lógica defensiva del cliente. Se prueba
+que una lectura de un almacenamiento corrupto (un JSON inválido, un
+valor que no es una lista o entradas con forma inesperada) nunca rompe la
+aplicación: el dato se descarta con seguridad y se devuelve un valor vacío. Se
+prueba también que el marcado y desmarcado de favoritos se persiste; que las
+sesiones
+de historial se ordenan de la más reciente a la más antigua, que su título se
+deriva del primer mensaje recortándolo a una longitud máxima, y que al eliminar
+la sesión activa se limpia también la referencia a la sesión actual. Como el
+módulo de almacenamiento cachea los favoritos en estado de módulo para integrarse
+con el sistema de reactividad de React, cada prueba reimporta el módulo en limpio
+para partir de un estado conocido.
+
+\subsection{Componentes de interfaz}
+\label{sec:test-frontend-componentes}
+
+A nivel de componente se prueban tres piezas representativas:
+
+\begin{itemize}
+  \item La tarjeta de vehículo (\texttt{CarCard}): que muestra la marca, el
+        modelo, el precio formateado y el combustible legible, y que el botón
+        de favorito refleja su estado mediante el atributo de accesibilidad
+        correspondiente y, al pulsarlo, marca el vehículo y lo persiste. La prueba
+        ejercita a la vez la presentación, la interacción y la integración con la
+        persistencia local.
+
+  \item El catálogo (\texttt{Catalog}): se centra en la lógica de paginación, que
+        es la parte con más casos límite. Aislando las llamadas a la API, se
+        verifica que una página llena habilita el botón de avance y deshabilita el
+        de retroceso en la primera posición, que una página parcial deshabilita el
+        avance, que al avanzar se solicita el desplazamiento correcto y se
+        actualiza el número de página y, el caso más sutil, que cuando el total es
+        múltiplo exacto del tamaño de página y la página siguiente llega vacía, el
+        catálogo retrocede en lugar de mostrar una página en blanco.
+
+  \item La burbuja de mensaje (\texttt{MessageBubble}): es la que renderiza las
+        respuestas estructuradas (RF-11), de modo que se prueba el despacho por
+        tipo de bloque: que un mensaje de usuario se muestra como texto plano; que
+        un bloque de texto se interpreta como \emph{Markdown} (el énfasis se
+        convierte en el elemento HTML correspondiente); que un bloque de imagen
+        con URL renderiza la imagen y sin URL no renderiza nada; y que los bloques
+        de gráfica se dibujan correctamente, con detalles como la ocultación de la
+        leyenda redundante cuando hay una sola serie o la normalización de las
+        escalas en las gráficas de radar para que una magnitud grande no aplaste a
+        las demás. Como la biblioteca de gráficas mide su contenedor, algo
+        imposible en un DOM simulado, la prueba inyecta un tamaño fijo para que la
+        gráfica se renderice y se pueda inspeccionar.
+\end{itemize}
+
+\subsection{Cobertura de código}
+\label{sec:test-cobertura}
+
+Como medida complementaria, que no sustituye al criterio de probar lo importante
+pero sí ayuda a detectar zonas sin verificar, el flujo de integración continua
+mide la cobertura de código del \emph{backend} con pytest-cov y publica el informe
+como artefacto. Estas cifras conviene leerlas en su contexto: la cobertura es alta
+donde reside la lógica crítica respaldada por pruebas y baja donde aportaría poco.
+En la ejecución de referencia, la cobertura global del \emph{backend} se sitúa en
+torno al 75\,\%, con los valores más altos en los módulos centrales: el
+repositorio de vehículos (\texttt{cars\_repository.py}) alcanza el 94\,\%, la
+normalización (\texttt{normalization.py}) y el pipeline de \texttt{/chat}
+(\texttt{api/chat.py}) rondan el 84\,\%, y los modelos de datos y la configuración
+quedan al 100\,\%.
+
+Esta cifra del 75\,\% corresponde a la ejecución en la integración continua, donde
+las pruebas de integración del repositorio sí se ejecutan contra el \emph{service
+container} de \emph{PostgreSQL}; en una ejecución local sin base de datos, al
+omitirse esos diecisiete casos, la cobertura del repositorio cae y la global
+desciende a alrededor del 64\,\%. Los módulos con cobertura más baja son aquellos
+cuya verificación no se ha automatizado a propósito: el utilitario de análisis de
+variabilidad (\texttt{analizador\_variabilidad.py}), una herramienta auxiliar
+usada durante el desarrollo del \emph{scraping} y ajena al funcionamiento del
+sistema en producción, y algunas rutas y manejadores de la capa de API cuya
+lógica es fina y se ejercita de forma indirecta. La cobertura no es, por tanto,
+un objetivo en sí misma, sino un indicador de que el esfuerzo de prueba se
+concentró donde debía.
+
+% [Captura de pantalla del informe de cobertura HTML del backend (el que
+% genera pytest-cov y publica la CI como artefacto «backend-coverage»), mostrando
+% la tabla de ficheros con sus porcentajes y el total del 75%. Sustituir el nombre
+% del fichero de imagen por la captura real.]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{Figuras/cobertura_backend.png}
+    \caption{Informe de cobertura de código del \emph{backend} generado en la
+    integración continua.}
+    \label{fig:cobertura-backend}
+\end{figure}
 
 \section{Evaluación de la calidad de los resultados}
+\label{sec:test-evaluacion}
+
+Más allá de la corrección del código, que las pruebas automatizadas garantizan,
+la calidad de \emph{autoAI} depende de un aspecto que no admite una aserción
+binaria: la calidad de las respuestas del asistente conversacional. Que el
+sistema no falle es necesario, pero no suficiente; la pregunta relevante es si
+las recomendaciones son pertinentes, si las cifras son correctas y si la
+interpretación de las peticiones vagas es razonable. Esta sección describe cómo
+se ha evaluado esa dimensión.
+
+\subsection{La invariante de veracidad como criterio central}
+\label{sec:test-veracidad}
+
+El criterio de calidad más importante del sistema es la invariante de veracidad
+(RF-09): toda cifra que aparece en una respuesta debe proceder de una consulta
+real a la base de datos, no de la imaginación del modelo. Esta invariante no se
+comprueba solo \emph{a posteriori}: está garantizada por construcción en el
+diseño y respaldada por pruebas. El modelo no genera SQL ni redacta cifras
+libremente, sino que obtiene todos los datos a través del catálogo cerrado de
+herramientas, y los elementos más propensos a la invención (las URLs de las
+imágenes y las barras de las gráficas) se blindan con la hidratación desde la base
+de datos y con la alimentación exclusiva desde la herramienta de agregación, ambas
+cubiertas por las pruebas del pipeline. La evaluación de calidad parte, por tanto,
+de una base sólida: el diseño hace que mentir con datos sea, en lo posible,
+estructuralmente imposible.
+
+\subsection{Evaluación cualitativa mediante consultas representativas}
+\label{sec:test-cualitativa}
+
+La pertinencia y la naturalidad de las respuestas se han evaluado de forma
+cualitativa y manual, mediante una batería de consultas representativas
+ejecutadas contra el sistema durante la fase de refinamiento del pipeline. La
+batería se construyó para cubrir las distintas categorías de petición que el
+asistente debe atender, recogidas en los requisitos funcionales:
+
+\begin{description}
+  \item[Consultas objetivas.] Peticiones con un criterio inequívoco («el coche
+        más barato», «el SUV más potente»), donde se comprobó que el resultado es
+        determinista y correcto frente a la base de datos.
+
+  \item[Consultas exploratorias y vagas.] Peticiones cualitativas sin un orden
+        objetivo («un coche para la familia», «algo para ciudad», «que gaste
+        poco»), donde se evaluó que el asistente las traduce a filtros razonables
+        (RF-10) y que la variación de resultados funciona sin degradar la
+        calidad.
+
+  \item[Consultas de comparación y de visualización.] Peticiones que requieren
+        comparar varios vehículos o agregar datos («precio medio por marca de los
+        SUV»), donde se verificó que la respuesta combina los bloques adecuados
+        (tabla, gráfica) y que las cifras coinciden con las de la base de datos
+        (RF-12).
+
+  \item[Consultas sobre atributos no soportados.] Peticiones que mencionan
+        características ausentes del modelo de datos (techo solar, color, etiqueta
+        medioambiental), donde se comprobó que el asistente advierte de la
+        limitación, propone la dimensión más cercana y ejecuta igualmente la
+        búsqueda con el resto de criterios (RF-13), en lugar de rendirse.
+
+  \item[Consultas multiturno y bilingües.] Conversaciones de varios turnos, para
+        comprobar el mantenimiento del contexto (RF-08), y peticiones en ambos
+        idiomas, para verificar que solo se traduce la prosa y nunca los datos del
+        vehículo (RF-14).
+\end{description}
+
+El propio capítulo de diseño ilustra el resultado de esta evaluación con capturas
+de la interfaz conversacional respondiendo con gráficas, tablas e imágenes
+(figuras~\ref{fig:conversacion-grafica} a~\ref{fig:conversacion-imagenes}). La
+evaluación fue iterativa: muchos de los ajustes del \emph{prompt} de sistema y
+del comportamiento del pipeline descritos en el capítulo de implementación (el
+tratamiento de los híbridos enchufables, la agrupación de carrocerías, la
+variación de respuestas) surgieron de observar respuestas insatisfactorias en
+estas consultas y corregirlas, en un ciclo de prueba manual y refinamiento
+propio del desarrollo de sistemas con modelos de lenguaje.
+
+La tabla~\ref{tab:test-cualitativa} recoge una muestra de esa batería: para cada
+consulta representativa, su categoría, las herramientas que el asistente invocó,
+el tipo de bloques de la respuesta y la valoración cualitativa obtenida.
+
+\begin{table}[H]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.0cm}p{1.8cm}p{2.4cm}p{2.0cm}p{2.6cm}}
+\hline
+\textbf{Consulta} & \textbf{Categoría} & \textbf{\emph{Tools}} &
+\textbf{Bloques} & \textbf{Valoración} \\
+\hline
+«El coche más barato» &
+Objetiva &
+\texttt{buscar\_coches} &
+Texto, imagen &
+Correcta: devuelve el de menor precio de la BD. \\
+
+«El SUV más potente» &
+Objetiva &
+\texttt{buscar\_coches} &
+Texto, imagen &
+Correcta y determinista. \\
+
+«Un coche para la familia» &
+Exploratoria &
+\texttt{buscar\_coches} &
+Texto, imágenes &
+Pertinente: infiere plazas y maletero amplios; varía entre llamadas. \\
+
+«Algo que gaste poco» &
+Exploratoria &
+\texttt{buscar\_coches} &
+Texto, imágenes &
+Pertinente: filtra por consumo bajo. \\
+
+«Compara el Golf y el León» &
+Comparación &
+\texttt{buscar\_coches}, \texttt{comparar} &
+Texto, tabla &
+Correcta: tabla enfrentada con cifras de la BD. \\
+
+«Precio medio por marca de los SUV» &
+Visualización &
+\texttt{agregar} &
+Texto, gráfica &
+Correcta: barras alimentadas por la agregación. \\
+
+«Un coche con techo solar» &
+Atributo no soportado &
+\texttt{buscar\_coches} &
+Texto, imágenes &
+Adecuada: advierte de la limitación y busca con el resto de criterios (RF-13). \\
+
+«Dame un SUV» $\to$ «y más barato» &
+Multiturno &
+\texttt{buscar\_coches} &
+Texto, imágenes &
+Correcta: mantiene el contexto entre turnos (RF-08). \\
+
+«Recommend me a city car» (en inglés) &
+Bilingüe &
+\texttt{buscar\_coches} &
+Texto, imágenes &
+Correcta: prosa en inglés, datos del vehículo intactos (RF-14). \\
+\hline
+\end{tabular}
+\caption{Muestra de la evaluación cualitativa del asistente sobre consultas
+representativas.}
+\label{tab:test-cualitativa}
+\end{table}
+
+\subsection{Cobertura de los requisitos por las pruebas}
+\label{sec:test-trazabilidad}
+
+Las pruebas se corresponden con los requisitos definidos en el
+Capítulo~\ref{cap:requisitos}. La tabla~\ref{tab:trazabilidad-pruebas} traza esa
+correspondencia: para cada bloque de requisitos, indica el mecanismo de
+verificación empleado. Predominan las pruebas automatizadas en lo determinista y
+la evaluación cualitativa, apoyada en garantías de diseño, en lo que no lo es.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{3.4cm}p{4.0cm}p{4.8cm}}
+\hline
+\textbf{Requisitos} & \textbf{Mecanismo} & \textbf{Pruebas / evidencia} \\
+\hline
+RF-01 a RF-06 (catálogo) & Integración (BD real) &
+\texttt{test\_cars\_repository\_integration} \\
+RF-07, RF-08, RF-15 (pipeline) & Unidad + E2E con \emph{mock} del LLM &
+\texttt{test\_chat\_pipeline}, \texttt{test\_chat\_validacion} \\
+RF-09 (veracidad) & Garantía de diseño + pruebas de hidratación &
+Tool-calling, hidratación de imágenes \\
+RF-10, RF-13, RF-14 (interpretación) & Evaluación cualitativa manual &
+Batería de consultas representativas \\
+RF-11 (bloques) & Componente (\emph{frontend}) &
+\texttt{MessageBubble.test} \\
+RF-12 (agregación/gráficas) & Integración + componente &
+\texttt{test\_cars\_repository...}, \texttt{MessageBubble.test} \\
+RF-16, RF-17 (datos locales) & Unidad (\emph{frontend}) &
+\texttt{storage.test} \\
+RF-19 a RF-21 (normaliz.) & Unidad + integración &
+\texttt{test\_normalization\_parsers} \\
+RF-22 (ingesta tolerante) & Unidad &
+\texttt{test\_ingest\_tolerante} \\
+RNF-09 a RNF-11 (seguridad) & Unidad + integración &
+\texttt{test\_require\_api\_key}, repositorio \\
+\hline
+\end{tabular}
+\caption{Trazabilidad entre requisitos y mecanismos de verificación.}
+\label{tab:trazabilidad-pruebas}
+\end{table}
 
 \section{Discusión de los resultados}
+\label{sec:test-discusion}
+
+El conjunto de pruebas reúne en total alrededor de ciento veinte casos (unos
+ochenta en el \emph{backend} y unos cuarenta en el \emph{frontend}), que se
+ejecutan automáticamente en cada cambio a través de la integración continua. Más
+relevante que el número es dónde se ha puesto el esfuerzo: las pruebas se han
+concentrado donde el riesgo y la complejidad son mayores (normalización,
+repositorio, pipeline de IA y persistencia local) y se han tratado de forma somera,
+o resuelto por diseño, las partes triviales o de pura presentación. La priorización
+es deliberada y proporcionada al contexto del proyecto.
+
+De la experiencia de probar el sistema se extraen tres lecciones. Aislar las
+fronteras no deterministas (el modelo de lenguaje, la red) es lo que hace
+verificable un sistema con un componente de inteligencia artificial: al sustituir
+el modelo por un doble de prueba, todo el andamiaje que lo rodea, donde residen la
+mayoría de los fallos posibles, se vuelve determinista y comprobable con
+aserciones exactas. Para los comportamientos variables a propósito, las pruebas de
+propiedad, que verifican invariantes estadísticas en lugar de valores concretos,
+resultan adecuadas, como ilustra la prueba del sesgo de la búsqueda exploratoria.
+Y algunas garantías se aseguran mejor por construcción que por prueba: la
+invariante de veracidad del asistente se sostiene menos por los casos de prueba
+que por un diseño que hace estructuralmente difícil violarla.
+
+El enfoque tiene también limitaciones. La evaluación de la calidad de las
+respuestas del asistente es manual y cualitativa, no automatizada ni cuantificada
+con métricas formales; un trabajo más ambicioso podría incorporar una evaluación
+sistemática con un conjunto de consultas etiquetadas y, en su caso, un modelo
+evaluador. No se han realizado pruebas de carga ni de rendimiento bajo
+concurrencia, por quedar fuera del alcance de un prototipo de Trabajo de Fin de
+Grado, aunque el diseño contempla los índices y los límites necesarios para
+sostener un volumen razonable. Tampoco se han automatizado pruebas de extremo a
+extremo de la interfaz en un navegador real (con herramientas como
+\emph{Playwright}), que ejercitarían el sistema completo desde el clic del
+usuario; las pruebas de componente cubren la lógica de la interfaz, pero no la
+integración visual de toda la aplicación. Estas limitaciones se retoman, como
+líneas de mejora, en el capítulo de conclusiones.
+
+Con todo, el sistema de pruebas responde a su propósito: respalda las
+funcionalidades críticas con verificaciones automáticas y reproducibles, las
+asocia a los requisitos y constituye la red de seguridad que permitió desarrollar
+\emph{autoAI} de forma incremental y refactorizar con confianza.
 
 
 % ---------------------------------------------------------------------
