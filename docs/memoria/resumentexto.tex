@@ -1,8 +1,39 @@
-En este archivo se incluirá tanto el resumen en castellano como su traducción al inglés. Los dos párrafos estarán ligeramente separados.
+El propósito de este Trabajo de Fin de Grado es acercar la consulta de un
+catálogo técnico de vehículos a usuarios sin conocimientos de automoción, de
+modo que puedan expresar sus necesidades en lenguaje natural y recibir
+recomendaciones fundamentadas en datos reales y verificables, y no en
+afirmaciones inventadas por el modelo de lenguaje. Con ese fin se ha diseñado,
+implementado y validado \emph{autoAI}, una aplicación web que reúne un asistente
+conversacional y un catálogo filtrable clásico sobre el mismo conjunto de datos
+del mercado español.
 
-El  propósito  del  trabajo  en  una  o  dos  frases.  El  diseño  y metodología  utilizada,  los  resultados  más  significativos  del trabajo realizado y un breve resumen de las conclusiones. Debe ser conciso y presentar los resultados obtenidos tras la ejecución del TFG. 
+El desarrollo siguió una metodología incremental. El sistema se organiza en
+cuatro servicios desacoplados y contenerizados: un proceso de extracción
+(\emph{web scraping}) con Scrapy, que recorre la jerarquía del agregador
+\texttt{km77.com}; un \emph{backend} en FastAPI que normaliza e ingiere los
+datos, expone una API REST y orquesta el asistente; una base de datos relacional
+PostgreSQL; y un \emph{frontend} de página única en React y TypeScript. El núcleo
+del trabajo es un \emph{pipeline} de inteligencia artificial basado en el patrón
+de uso de herramientas (\emph{tool calling}): el modelo de lenguaje interpreta la
+petición y redacta la respuesta, pero toda cifra que ofrece procede
+obligatoriamente de una consulta a la base de datos, lo que impide por
+construcción las alucinaciones.
 
-\vspace{1.5cm}
+El sistema resultante es funcional y desplegable. El asistente traduce peticiones
+vagas en filtros concretos y devuelve respuestas estructuradas (texto, tablas,
+gráficas e imágenes) tomadas de datos reales, junto a un catálogo filtrable y
+paginado. Se resolvió la normalización de datos heterogéneos y con información
+implícita, en particular la inferencia del nivel de electrificación a partir del
+nombre comercial, y se diseñó una ingesta idempotente y tolerante a fallos. Las
+funcionalidades críticas se respaldaron con pruebas automatizadas, un flujo de
+integración continua y un despliegue reproducible con Docker Compose.
 
-%\section*{Abstract}
-Put here  the english tranlation  ... . Debe ser conciso y presentar los resultados obtenidos tras la ejecución del TFG. Los dos parrafos estarán ligeramente separados.
+La principal conclusión es que la flexibilidad de un modelo de lenguaje y el
+rigor factual de una base de datos pueden conciliarse cuando el papel del modelo
+se limita a la comprensión y la redacción y todo dato se delega en la fuente
+estructurada. El trabajo muestra, además, que en sistemas alimentados por
+\emph{scraping} la calidad depende más de la normalización que de la extracción,
+y que la metodología iterativa fue decisiva para incorporar decisiones de diseño
+ausentes del plan inicial. \emph{autoAI} cumple así el objetivo planteado: dar a
+un usuario no experto un acceso conversacional al catálogo de vehículos sin
+renunciar a la veracidad de los datos.
