@@ -1219,9 +1219,9 @@ fila.
 \section{Backend con FastAPI}
 \label{sec:impl-backend}
 
-El \emph{backend} se ha implementado con \emph{FastAPI}, un \emph{framework} web
+El \emph{backend} se ha implementado con \emph{FastAPI}~\cite{ramirez2024fastapi}, un \emph{framework} web
 de Python que aprovecha las anotaciones de tipos y se integra de forma nativa con
-Pydantic. Esa integración motivó su elección: al declarar los modelos de entrada y
+Pydantic~\cite{pydantic2024}. Esa integración motivó su elección: al declarar los modelos de entrada y
 salida con tipos, FastAPI valida las peticiones, serializa las respuestas y genera
 documentación interactiva de la API sin código adicional. El servidor se ejecuta
 sobre \emph{uvicorn} (servidor ASGI) y, en producción, con varios procesos de
@@ -1561,7 +1561,7 @@ figura~\ref{fig:preferencias} del capítulo anterior.
 \label{sec:impl-docker}
 
 Todo el sistema se empaqueta y se orquesta con \emph{Docker} y \emph{Docker
-Compose}. Cada uno de los cuatro servicios (base de datos, \emph{backend},
+Compose}~\cite{docker2024}. Cada uno de los cuatro servicios (base de datos, \emph{backend},
 \emph{frontend} y \emph{scraper}) se ejecuta en su propio contenedor, definido por
 su respectivo \texttt{Dockerfile}, y todos comparten una misma red privada virtual
 (\texttt{appnet}) en la que se descubren por su nombre lógico.

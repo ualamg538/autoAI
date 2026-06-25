@@ -1,0 +1,17 @@
+\emph{autoAI} es una aplicación web que acerca la consulta de un catálogo técnico
+de vehículos a usuarios sin conocimientos de automoción: permite expresar las
+necesidades en lenguaje natural y devuelve recomendaciones fundamentadas en datos
+reales, no en afirmaciones inventadas por el modelo de lenguaje.
+
+El sistema se organiza en cuatro servicios desacoplados y contenerizados: un
+proceso de \emph{web scraping} con Scrapy sobre \texttt{km77.com}, un
+\emph{backend} en FastAPI que normaliza los datos y orquesta el asistente, una
+base de datos PostgreSQL y un \emph{frontend} en React y TypeScript. El núcleo es
+un \emph{pipeline} basado en el patrón de uso de herramientas (\emph{tool
+calling}): el modelo interpreta la petición y redacta la respuesta, pero toda
+cifra procede obligatoriamente de la base de datos, lo que impide por
+construcción las alucinaciones.
+
+La conclusión principal es que la flexibilidad de un modelo de lenguaje y el
+rigor factual de una base de datos pueden conciliarse cuando el modelo se limita
+a comprender y redactar y todo dato se delega en la fuente estructurada.

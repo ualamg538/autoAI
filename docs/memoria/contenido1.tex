@@ -323,7 +323,7 @@ de \emph{autoAI}.
 
 El PLN se abordó primero con sistemas basados en reglas y, más tarde, con modelos
 estadísticos y de aprendizaje automático que requerían ingeniería manual de
-características. El cambio llegó con la arquitectura \emph{Transformer} y los
+características. El cambio llegó con la arquitectura \emph{Transformer}~\cite{vaswani2017attention} y los
 modelos de lenguaje grandes (\emph{Large Language Models}, LLM) preentrenados
 sobre grandes corpus de texto, capaces de realizar tareas muy diversas
 (comprensión, resumen, traducción o generación) sin entrenamiento específico para
@@ -344,7 +344,7 @@ generar afirmaciones plausibles pero falsas cuando no disponen de la informació
 solicitada. En el dominio de los datos de automóviles, donde una cifra de precio o
 de consumo errónea invalida la respuesta, esa limitación resulta inaceptable. Para
 acotarla se han popularizado la generación aumentada por recuperación
-(\emph{Retrieval-Augmented Generation}, RAG) y, más recientemente, las
+(\emph{Retrieval-Augmented Generation}, RAG)~\cite{lewis2020rag} y, más recientemente, las
 arquitecturas de uso de herramientas (\emph{tool calling} o \emph{function
 calling}), en las que el modelo invoca funciones externas (consultas a una base de
 datos, búsquedas o cálculos) y construye la respuesta a partir de sus resultados
@@ -371,7 +371,7 @@ integración a cambio de un coste por uso y de una dependencia externa.
 
 \emph{autoAI} opta por la segunda vía, con una capa de desacoplamiento: el
 \emph{backend} se comunica con el proveedor a través de una API compatible con la
-de OpenAI, que se ha convertido en un estándar de facto adoptado por numerosos
+de OpenAI~\cite{openai2024api}, que se ha convertido en un estándar de facto adoptado por numerosos
 proveedores y por motores de inferencia de modelos abiertos. El modelo concreto es
 un parámetro de configuración, así que el sistema no queda atado a un proveedor ni
 a un modelo determinado y puede sustituirse sin tocar el código. La decisión
@@ -406,7 +406,7 @@ más habituales son:
         pequeñas, pero dejan a cargo del desarrollador la gestión del rastreo
         (seguimiento de enlaces, concurrencia, reintentos, control de carga).
 
-  \item[\emph{Frameworks} de rastreo.] Scrapy es el \emph{framework} de referencia
+  \item[\emph{Frameworks} de rastreo.] Scrapy~\cite{scrapy2024} es el \emph{framework} de referencia
         en Python para rastreos de cierta envergadura. Aporta de serie un modelo
         asíncrono de alto rendimiento, gestión de concurrencia, regulación
         automática del ritmo de peticiones (\emph{auto-throttle}), reanudación de
@@ -431,7 +431,7 @@ XPath.
 
 Esta elección supuso una desviación respecto al planteamiento inicial, que
 contemplaba orquestar la extracción con la herramienta de automatización de flujos
-\emph{n8n}. Se descartó por introducir una dependencia externa pesada y por ofrecer
+\emph{n8n}~\cite{n8n2024}. Se descartó por introducir una dependencia externa pesada y por ofrecer
 un control del rastreo inferior al que Scrapy proporciona de forma nativa (detalle
 que se desarrolla en el Capítulo~\ref{cap:metodologia}).
 
@@ -481,9 +481,9 @@ de una API REST.
 
 En el ecosistema \emph{frontend} conviven varias bibliotecas y \emph{frameworks}
 para construir interfaces basadas en componentes (React, Vue, Angular, Svelte).
-React es la opción más extendida y madura, con un modelo declarativo y un
-ecosistema amplio. \emph{autoAI} se ha desarrollado con React~19 y TypeScript,
-empaquetado con Vite, una herramienta de construcción que ofrece arranque y recarga
+React~\cite{react2024} es la opción más extendida y madura, con un modelo declarativo y un
+ecosistema amplio. \emph{autoAI} se ha desarrollado con React~19 y TypeScript~\cite{typescript2024},
+empaquetado con Vite~\cite{vite2024}, una herramienta de construcción que ofrece arranque y recarga
 rápidos en desarrollo y una construcción optimizada para producción. TypeScript
 añade tipado estático, que reduce errores y facilita el mantenimiento, sobre todo
 en la frontera con la API.
@@ -1221,13 +1221,13 @@ revisaron a la luz de lo aprendido. Las desviaciones más relevantes fueron:
 
 \begin{description}
   \item[Sistema gestor de base de datos: de MySQL a PostgreSQL.] El documento
-        inicial preveía MySQL. Se optó por PostgreSQL por su soporte de índices
+        inicial preveía MySQL. Se optó por PostgreSQL~\cite{postgresql2024} por su soporte de índices
         parciales, empleados para la consulta de versiones vigentes, y por su
         mejor manejo de valores nulos y tipos, que encaja con un dominio en el que
         muchos atributos de los vehículos pueden faltar en la fuente.
 
   \item[Automatización del \emph{scraping}: de n8n a Scrapy programado.] El plan
-        contemplaba orquestar la extracción con la herramienta \emph{n8n}. En su
+        contemplaba orquestar la extracción con la herramienta \emph{n8n}~\cite{n8n2024}. En su
         lugar se implementó un \emph{spider} con Scrapy, ejecutado de forma
         periódica mediante una expresión \emph{cron} dentro del propio contenedor.
         Esta decisión eliminó una dependencia externa pesada y permitió aprovechar
