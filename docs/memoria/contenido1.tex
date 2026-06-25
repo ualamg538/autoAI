@@ -22,16 +22,316 @@
 %  2. ESTADO DEL ARTE / MARCO TEÓRICO
 % ---------------------------------------------------------------------
 \chapter{Estado del arte}
+\label{cap:estado-arte}
+
+Este capítulo revisa el estado del arte en los cuatro frentes que confluyen en
+el sistema \emph{autoAI}: las plataformas existentes de búsqueda y comparación de
+vehículos, los modelos de lenguaje y el procesamiento de lenguaje natural, las
+técnicas de \emph{web scraping} para obtener los datos y las tecnologías web con
+las que se construye la interfaz. En cada apartado se contrastan las alternativas
+disponibles con las necesidades del proyecto, de modo que el análisis sirva para
+justificar las decisiones técnicas que se adoptan en los capítulos posteriores.
+El capítulo termina con una síntesis del hueco que cubre el trabajo.
 
 \section{Buscadores y agregadores de coches existentes}
+\label{sec:arte-buscadores}
+
+El mercado español dispone de varias plataformas que recopilan y comparan
+información de automóviles. Pueden agruparse en tres categorías según su
+propósito, distinción que importa porque condiciona el tipo de dato que publican
+y la forma de consultarlo.
+
+\begin{description}
+  \item[Agregadores de información técnica.] Sitios como \texttt{km77.com} o
+        \texttt{coches.net} en su apartado de fichas técnicas mantienen catálogos
+        muy detallados de modelos, submodelos y versiones, con sus
+        especificaciones (motorización, dimensiones, consumos, prestaciones,
+        precio de catálogo, fechas de comercialización, etc.). Son la referencia
+        para quien quiere comparar datos objetivos de vehículos nuevos. Su
+        fortaleza es la profundidad y homogeneidad de la ficha técnica; su
+        limitación, de cara a un usuario no experto, es que la consulta se
+        organiza en torno a árboles de marcas y modelos y a formularios de
+        filtros que presuponen un vocabulario técnico (carrocería, tipo de
+        tracción, nivel de electrificación) que ese usuario no siempre domina.
+
+  \item[Portales de compraventa.] Plataformas como \texttt{coches.net},
+        \texttt{wallapop} o \texttt{autoScout24} se centran en anuncios concretos
+        de vehículos (nuevos, kilómetro cero y de ocasión) puestos a la venta por
+        particulares y concesionarios. Su valor está en el inventario real y el
+        precio de mercado, no en la comparación técnica estructurada, y su
+        contenido es volátil porque depende de la oferta vigente.
+
+  \item[Comparadores y configuradores.] Algunas webs ofrecen comparadores que
+        enfrentan dos o tres modelos en una tabla de especificaciones, y los
+        fabricantes publican configuradores de sus propias gamas. Resuelven la
+        comparación puntual pero no la exploración abierta del mercado.
+\end{description}
+
+El rasgo común a todas estas plataformas es que la interacción es estructurada y
+la dirige el usuario: la persona debe traducir por sí misma una necesidad difusa
+(por ejemplo, «un coche cómodo para viajar con la familia y que no gaste mucho»)
+en una combinación de filtros concretos. Eso exige conocer de antemano qué
+dimensiones existen y qué valores son razonables, una barrera para el usuario no
+experto que es el público objetivo de este trabajo. No se ha identificado en el
+mercado español una plataforma de consulta de catálogo que ofrezca, de forma
+integrada, un acceso en lenguaje natural respaldado por datos técnicos reales y
+verificables, capaz de interpretar peticiones vagas y devolver respuestas con
+tablas, gráficas e imágenes.
+
+De entre los agregadores analizados, \texttt{km77.com} se ha tomado como fuente de
+datos del proyecto (véase la Sección~\ref{sec:arte-scraping}). Es la referencia
+española en información técnica de automóviles, publica datos completos y
+homogéneos a nivel de versión y organiza su contenido en una jerarquía de marca,
+modelo, submodelo y versión que facilita su recorrido sistemático. \emph{autoAI}
+no compite con estos agregadores: se apoya en uno de ellos para ofrecer encima una
+capa de consulta distinta.
+
+% TODO: Tabla comparativa de las plataformas existentes (km77.com, coches.net,
+% wallapop, autoScout24, configuradores de fabricante) frente a autoAI, con
+% columnas como: tipo de plataforma, profundidad de ficha técnica, consulta en
+% lenguaje natural, respuestas con visualizaciones, fuente de los datos. El
+% objetivo es evidenciar visualmente el hueco que cubre autoAI.
 
 \section{Modelos de lenguaje y procesamiento de lenguaje natural}
+\label{sec:arte-pln}
+
+El procesamiento de lenguaje natural (PLN) es la rama de la inteligencia
+artificial que se ocupa de que las máquinas comprendan y generen lenguaje humano.
+Su evolución en la última década es la que ha hecho viable el modo conversacional
+de \emph{autoAI}.
+
+\subsection{De los enfoques clásicos a los modelos de lenguaje grandes}
+
+El PLN se abordó primero con sistemas basados en reglas y, más tarde, con modelos
+estadísticos y de aprendizaje automático que requerían ingeniería manual de
+características. El cambio llegó con la arquitectura \emph{Transformer} y los
+modelos de lenguaje grandes (\emph{Large Language Models}, LLM) preentrenados
+sobre grandes corpus de texto, capaces de realizar tareas muy diversas
+(comprensión, resumen, traducción o generación) sin entrenamiento específico para
+cada una. Estos modelos interpretan con soltura peticiones expresadas de forma
+libre y ambigua, lo que encaja con el objetivo de que el usuario se dirija al
+sistema sin conocer su vocabulario técnico interno.
+
+Para el problema de este trabajo, la capacidad relevante de un LLM no es su
+conocimiento del mundo (poco fiable y desactualizado para datos concretos de
+precios y especificaciones), sino su habilidad para traducir intenciones vagas en
+consultas estructuradas y para redactar respuestas en lenguaje natural a partir de
+los datos que se le proporcionan. Esta distinción guía el diseño de \emph{autoAI}.
+
+\subsection{El problema de las alucinaciones y la generación aumentada}
+
+Una limitación conocida de los LLM es la \emph{alucinación}: la tendencia a
+generar afirmaciones plausibles pero falsas cuando no disponen de la información
+solicitada. En el dominio de los datos de automóviles, donde una cifra de precio o
+de consumo errónea invalida la respuesta, esa limitación resulta inaceptable. Para
+acotarla se han popularizado la generación aumentada por recuperación
+(\emph{Retrieval-Augmented Generation}, RAG) y, más recientemente, las
+arquitecturas de uso de herramientas (\emph{tool calling} o \emph{function
+calling}), en las que el modelo invoca funciones externas (consultas a una base de
+datos, búsquedas o cálculos) y construye la respuesta a partir de sus resultados
+en lugar de responder directamente.
+
+\emph{autoAI} adopta esta segunda aproximación. El modelo dispone de un conjunto
+acotado de herramientas (búsqueda de coches por filtros, consulta de la ficha de
+un vehículo, comparación de varios y agregaciones estadísticas) y la instrucción
+de sistema le exige que toda cifra que ofrezca proceda de una de ellas, con
+prohibición expresa de inventar datos. El modelo decide de forma iterativa qué
+herramientas invocar hasta reunir información suficiente y solo entonces redacta la
+respuesta. Este patrón, implementado en el \emph{backend}, resuelve a la vez la
+traducción de lenguaje natural a consulta y la fiabilidad de los datos.
+
+\subsection{Modelos abiertos frente a servicios gestionados}
+
+A la hora de incorporar un LLM a una aplicación existen dos grandes vías. La
+primera es desplegar un modelo de pesos abiertos en infraestructura propia, lo que
+otorga control total y evita costes por petición, pero exige recursos de cómputo
+(en particular GPU) considerables y un esfuerzo de operación que excede el alcance
+de un Trabajo de Fin de Grado. La segunda es consumir un modelo a través de una
+API gestionada por un proveedor, que externaliza el cómputo y simplifica la
+integración a cambio de un coste por uso y de una dependencia externa.
+
+\emph{autoAI} opta por la segunda vía, con una capa de desacoplamiento: el
+\emph{backend} se comunica con el proveedor a través de una API compatible con la
+de OpenAI, que se ha convertido en un estándar de facto adoptado por numerosos
+proveedores y por motores de inferencia de modelos abiertos. El modelo concreto es
+un parámetro de configuración, así que el sistema no queda atado a un proveedor ni
+a un modelo determinado y puede sustituirse sin tocar el código. La decisión
+equilibra la simplicidad de integración con la independencia tecnológica.
+
+% TODO: Diagrama del bucle de razonamiento con tool calling: usuario -> modelo
+% de lenguaje -> (decide invocar herramienta) -> backend ejecuta la consulta SQL
+% -> resultados de la base de datos -> modelo -> ... (iteración acotada) ->
+% respuesta estructurada final. Debe ilustrar que el modelo no accede a la base
+% de datos directamente, sino a través de herramientas controladas por el backend.
 
 \section{Web scraping para la obtención de datos}
+\label{sec:arte-scraping}
+
+Dado que la fuente de datos elegida, \texttt{km77.com}, no ofrece una API pública
+para consultar su catálogo, la obtención de los datos debe realizarse mediante
+\emph{web scraping}: la extracción automatizada de información a partir del HTML
+de las páginas web.
+
+\subsection{Técnicas y herramientas de extracción}
+
+Las técnicas de \emph{scraping} abarcan desde la simple descarga de páginas con
+una biblioteca cliente HTTP y su análisis con un \emph{parser} de HTML, hasta la
+automatización de un navegador completo cuando el contenido se genera con
+JavaScript en el lado del cliente. En el ecosistema de Python, las herramientas
+más habituales son:
+
+\begin{description}
+  \item[Bibliotecas de extracción puntual.] Combinaciones como \texttt{requests}
+        junto con \texttt{BeautifulSoup} o \texttt{lxml} permiten descargar y
+        analizar páginas concretas. Son sencillas y adecuadas para tareas
+        pequeñas, pero dejan a cargo del desarrollador la gestión del rastreo
+        (seguimiento de enlaces, concurrencia, reintentos, control de carga).
+
+  \item[\emph{Frameworks} de rastreo.] Scrapy es el \emph{framework} de referencia
+        en Python para rastreos de cierta envergadura. Aporta de serie un modelo
+        asíncrono de alto rendimiento, gestión de concurrencia, regulación
+        automática del ritmo de peticiones (\emph{auto-throttle}), reanudación de
+        trabajos interrumpidos, exportación a múltiples formatos y respeto del
+        fichero \texttt{robots.txt}.
+
+  \item[Automatización de navegador.] Herramientas como Selenium o Playwright
+        controlan un navegador real y son necesarias cuando los datos solo
+        aparecen tras la ejecución de JavaScript. A cambio, son mucho más lentas y
+        pesadas en recursos.
+\end{description}
+
+Para \emph{autoAI} se ha elegido Scrapy. La información técnica de
+\texttt{km77.com} está presente en el HTML servido, por lo que no se requiere
+automatización de navegador, y la extracción debe recorrer una jerarquía de cinco
+niveles (marcas, modelos, submodelos, versiones y ficha técnica de cada versión)
+con miles de páginas; para ese volumen, el rastreo masivo y responsable que Scrapy
+ofrece de serie es lo que inclina la balanza. El \emph{spider} implementado parte
+del listado de marcas y sigue enlaces nivel a nivel hasta llegar a la ficha de cada
+versión, de la que extrae los campos técnicos mediante selectores CSS y expresiones
+XPath.
+
+Esta elección supuso una desviación respecto al planteamiento inicial, que
+contemplaba orquestar la extracción con la herramienta de automatización de flujos
+\emph{n8n}. Se descartó por introducir una dependencia externa pesada y por ofrecer
+un control del rastreo inferior al que Scrapy proporciona de forma nativa (detalle
+que se desarrolla en el Capítulo~\ref{cap:metodologia}).
+
+\subsection{Consideraciones éticas y de robustez}
+
+El \emph{scraping} responsable exige respetar la fuente de datos para no
+sobrecargarla ni vulnerar sus condiciones. En el proyecto esto se traduce en el
+respeto del \texttt{robots.txt}, el uso de retardos entre peticiones, límites de
+concurrencia y la regulación automática del ritmo (\emph{auto-throttle}), así
+como en la identificación mediante una cabecera \emph{User-Agent}. Además, la
+extracción se concibe para ejecutarse de forma programada y periódica, de modo que
+el catálogo se mantenga actualizado sin intervención manual.
+
+Un reto propio del \emph{scraping} es su fragilidad: los datos llegan en bruto,
+con formatos heterogéneos (unidades, separadores decimales, fechas expresadas como
+texto) y con numerosos campos ausentes, y cualquier cambio en la estructura de la
+web puede romper la extracción. Por eso, en \emph{autoAI} la extracción se separa
+de la normalización: el \emph{spider} captura los valores tal como aparecen y es el
+\emph{backend} el que, en una etapa posterior e independiente, los convierte a un
+formato canónico (conversión de unidades, interpretación de fechas, vocabulario
+controlado de carrocerías e inferencia del tipo de combustible y del nivel de
+electrificación). Esta separación, detallada en el
+Capítulo~\ref{cap:implementacion}, hace el sistema más robusto y más fácil de
+mantener.
 
 \section{Tecnologías web modernas para aplicaciones interactivas}
+\label{sec:arte-web}
+
+La interfaz de \emph{autoAI} debe ofrecer una experiencia interactiva: un
+asistente conversacional que muestra respuestas con tablas y gráficas, un catálogo
+filtrable con paginación y estados de carga, y la persistencia local de favoritos,
+historial y preferencias. Estas necesidades sitúan el trabajo en el terreno de las
+aplicaciones web actuales.
+
+\subsection{El paradigma de la \emph{single-page application}}
+
+Frente al modelo clásico de páginas servidas íntegramente por el servidor, las
+aplicaciones web actuales se construyen con frecuencia como \emph{single-page
+applications} (SPA): la aplicación se carga una vez en el navegador y actualiza la
+interfaz de forma dinámica en respuesta a la interacción del usuario, hablando con
+el servidor mediante llamadas a una API. Este modelo se ajusta a \emph{autoAI} por
+la naturaleza interactiva del asistente y del catálogo, y separa con nitidez el
+cliente (interfaz) del \emph{backend} (lógica y datos), que se comunican a través
+de una API REST.
+
+\subsection{Bibliotecas de interfaz y ecosistema}
+
+En el ecosistema \emph{frontend} conviven varias bibliotecas y \emph{frameworks}
+para construir interfaces basadas en componentes (React, Vue, Angular, Svelte).
+React es la opción más extendida y madura, con un modelo declarativo y un
+ecosistema amplio. \emph{autoAI} se ha desarrollado con React~19 y TypeScript,
+empaquetado con Vite, una herramienta de construcción que ofrece arranque y recarga
+rápidos en desarrollo y una construcción optimizada para producción. TypeScript
+añade tipado estático, que reduce errores y facilita el mantenimiento, sobre todo
+en la frontera con la API.
+
+Sobre esa base se han incorporado bibliotecas concretas para las necesidades del
+proyecto: \texttt{recharts} para las gráficas (de barras y radar) que el asistente
+genera, \texttt{react-markdown} junto con \texttt{remark-gfm} para representar de
+forma segura la prosa en formato Markdown que devuelve el modelo, e
+\texttt{i18next} con \texttt{react-i18next} para la internacionalización de la
+interfaz en español e inglés. En producción, la SPA se sirve como contenido
+estático mediante Nginx.
+
+\subsection{Persistencia en el cliente y accesibilidad}
+
+Una particularidad del sistema es que no dispone de gestión de usuarios ni de
+autenticación. Toda la información propia del usuario (favoritos, historial de
+conversaciones y preferencias) se persiste solo en el navegador mediante la API
+\texttt{localStorage}. Esta decisión, acorde con el alcance del trabajo, simplifica
+la arquitectura al eliminar las cuentas y el almacenamiento de datos personales en
+el servidor, a cambio de que esa información quede ligada al navegador concreto.
+
+La accesibilidad es un requisito explícito del sistema, ya que su público objetivo
+incluye personas no expertas, y las tecnologías web actuales facilitan atenderla.
+La interfaz contempla ajustes de tema (claro u oscuro), tamaño de fuente e idioma,
+y aplica buenas prácticas en los diálogos modales (rol de diálogo, atrapado de foco
+y cierre con teclado), aspectos que se desarrollan en los capítulos de diseño e
+implementación.
 
 \section{Conclusiones del análisis}
+\label{sec:arte-conclusiones}
+
+El análisis del estado del arte delimita la aportación de \emph{autoAI} y
+fundamenta sus decisiones técnicas. De él se extraen las siguientes conclusiones:
+
+\begin{itemize}
+  \item Hay un hueco entre los agregadores de información técnica, muy completos
+        pero de consulta estructurada y orientada a usuarios con vocabulario
+        técnico, y la necesidad de un acceso en lenguaje natural apto para usuarios
+        no expertos. \emph{autoAI} se sitúa en ese hueco al combinar un catálogo
+        filtrable clásico con un asistente conversacional. No compite con los
+        agregadores: se apoya en uno de ellos como fuente de datos.
+
+  \item Los modelos de lenguaje hacen viable el modo conversacional, pero su
+        tendencia a la alucinación obliga a anclar las respuestas en datos reales.
+        El patrón de uso de herramientas (\emph{tool calling}), con la prohibición
+        de inventar cifras, resuelve a la vez la interpretación de intenciones
+        vagas y la fiabilidad de los datos; por eso es el adoptado.
+
+  \item La ausencia de una API en la fuente de datos impone el \emph{web
+        scraping}, para el que Scrapy ofrece mejor equilibrio entre potencia,
+        rastreo responsable y robustez que las alternativas más simples o más
+        pesadas. Separar la extracción de la normalización es lo que permite
+        manejar la heterogeneidad y las ausencias de los datos en bruto.
+
+  \item Las tecnologías web actuales (SPA con React y TypeScript sobre Vite,
+        comunicación con el \emph{backend} mediante API REST y persistencia en el
+        cliente) dan la base para una interfaz interactiva y accesible, ajustada al
+        alcance de un proyecto individual sin gestión de usuarios.
+\end{itemize}
+
+Las tecnologías necesarias existen y están maduras, de modo que la aportación del
+trabajo no está en inventar ninguna de ellas, sino en integrarlas de forma
+coherente para un problema acotado: acercar la consulta de un catálogo técnico de
+vehículos a un usuario no experto mediante lenguaje natural, sin renunciar a la
+fiabilidad de los datos. Las decisiones que aquí se justifican se concretan en los
+requisitos del Capítulo~\ref{cap:requisitos} y en el diseño y la implementación de
+los capítulos siguientes.
 
 
 % ---------------------------------------------------------------------
