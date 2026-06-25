@@ -2348,9 +2348,238 @@ asocia a los requisitos y constituye la red de seguridad que permitió desarroll
 %  8. CONCLUSIONES Y TRABAJO FUTURO
 % ---------------------------------------------------------------------
 \chapter{Conclusiones y trabajo futuro}
+\label{cap:conclusiones}
+
+Este capítulo cierra la memoria. Valora en qué medida el trabajo ha cumplido los
+objetivos que se plantearon al comienzo, recoge las conclusiones generales del
+proyecto, tanto sobre el producto obtenido como sobre el proceso seguido, y
+propone las líneas por las que el sistema podría seguir evolucionando más allá del
+alcance de este Trabajo de Fin de Grado.
 
 \section{Cumplimiento de los objetivos}
+\label{sec:concl-cumplimiento}
+
+El objetivo general del trabajo, enunciado en el Capítulo~\ref{sec:intro}, era
+diseñar, implementar y validar una aplicación web que permitiera a una persona no
+experta consultar y comparar el catálogo de vehículos del mercado español mediante
+un asistente conversacional cuyas respuestas se fundamentaran siempre en datos
+reales, sin que el modelo de lenguaje inventara información. Este objetivo se ha
+alcanzado: el sistema \emph{autoAI} resultante es una aplicación funcional y
+desplegable que ofrece, sobre un mismo catálogo de datos reales obtenidos de
+\texttt{km77.com}, los dos modos de exploración previstos (el conversacional y el
+filtrado clásico) y que garantiza por construcción, a través del patrón de
+\emph{tool calling}, que toda cifra de una respuesta procede de una consulta a la
+base de datos.
+
+A continuación se revisa, uno a uno, el grado de cumplimiento de los siete
+objetivos específicos definidos en la Sección~\ref{sec:intro-objetivos-especificos}.
+
+\begin{description}
+  \item[OE-1 (obtención de datos mediante \emph{web scraping}): cumplido.] Se
+        implementó un \emph{spider} con Scrapy que recorre la jerarquía completa de
+        \texttt{km77.com} en cinco niveles y extrae la ficha de cada versión. El
+        proceso se ejecuta de forma responsable con la fuente (control de
+        concurrencia, retardos, \emph{auto-throttle} y respeto del
+        \texttt{robots.txt}) y puede lanzarse de manera programada y periódica
+        mediante una expresión \emph{cron} dentro de su propio contenedor.
+
+  \item[OE-2 (normalización a un modelo canónico): cumplido.] Se desarrolló una
+        capa de normalización que convierte los datos en bruto en el modelo
+        canónico \texttt{Version}, con tipos correctos y vocabularios cerrados. El
+        subproblema más delicado, inferir el nivel de electrificación que el portal
+        no publica explícitamente, se resolvió analizando el nombre y el submodelo
+        de cada versión, codificando fuente fósil y electrificación en un
+        único atributo de nueve valores canónicos, y la ausencia de dato se
+        representa de forma explícita con valores nulos.
+
+  \item[OE-3 (persistencia fiable): cumplido.] El catálogo se almacena en una base
+        de datos PostgreSQL, y la ingesta es idempotente (mediante la cláusula
+        \texttt{ON CONFLICT} sobre la URL como clave de negocio) y tolerante a
+        fallos parciales (cada registro se inserta en su propio \emph{savepoint}, de
+        modo que un dato defectuoso no aborta el lote), devolviendo además un
+        informe detallado del resultado de cada importación.
+
+  \item[OE-4 (exposición mediante una API): cumplido.] El \emph{backend},
+        construido con FastAPI, centraliza todo el acceso a los datos y expone una
+        API REST con las operaciones de catálogo, ficha y comparación. Todas las
+        consultas se construyen con parámetros vinculados y los identificadores que
+        deben interpolarse (orden y agregaciones) se validan contra listas blancas,
+        eliminando por construcción el riesgo de inyección de SQL.
+
+  \item[OE-5 (asistente conversacional fundamentado en datos): cumplido, y núcleo
+        del trabajo.] Se implementó el \emph{pipeline} de \emph{tool calling}, con
+        un bucle de razonamiento acotado en el que el modelo invoca un catálogo
+        cerrado de cuatro herramientas (búsqueda, ficha, comparación y agregación)
+        hasta reunir los datos necesarios, y una segunda fase que genera una
+        respuesta estructurada en bloques tipados, validada contra un esquema con
+        reintento. La interpretación de intenciones vagas y el tratamiento de los
+        atributos no soportados se codificaron en las instrucciones de sistema.
+
+  \item[OE-6 (interfaz de usuario accesible): cumplido.] La interfaz, una
+        aplicación de página única en React y TypeScript, ofrece el asistente, el
+        catálogo filtrable, los favoritos y el historial, y un panel de
+        accesibilidad con tema, tamaño de fuente e idioma. Las respuestas
+        estructuradas se renderizan despachando cada bloque al componente adecuado,
+        y los datos del usuario se persisten en el navegador.
+
+  \item[OE-7 (calidad y reproducibilidad): cumplido.] Las funcionalidades críticas
+        se respaldaron con pruebas automatizadas en el \emph{backend} y el
+        \emph{frontend} (Capítulo~\ref{cap:pruebas}); un flujo de integración
+        continua en GitHub Actions valida cada cambio (\emph{lint}, tipos, pruebas y
+        construcción de imágenes); y todo el sistema se empaqueta con Docker
+        Compose, de forma que es reproducible en cualquier máquina con Docker.
+\end{description}
+
+En cuanto a los requisitos del Capítulo~\ref{cap:requisitos}, se han implementado
+la totalidad de los marcados con prioridad \emph{alta}, que son las capacidades
+nucleares de catálogo, asistente y obtención de datos, y la práctica totalidad de
+los de prioridad media y baja. Algunos requisitos no funcionales de seguridad se
+satisfacen como mecanismos opcionales desactivados por defecto (la limitación de
+tasa de peticiones y la exigencia de una clave de API para el chat y la ingesta),
+una decisión coherente con el carácter académico del despliegue, en el que prima
+la facilidad de evaluación sobre el endurecimiento para producción.
 
 \section{Conclusiones}
+\label{sec:concl-conclusiones}
+
+Del desarrollo de \emph{autoAI} se extraen varias conclusiones, relativas tanto al
+resultado obtenido como al proceso seguido.
+
+La primera y principal es que es posible conciliar la flexibilidad de un modelo de
+lenguaje con el rigor factual de una base de datos, y que la clave para lograrlo no
+está en confiar en el conocimiento interno del modelo, sino en acotar su papel. El
+patrón de \emph{tool calling}, con la prohibición expresa de inventar cifras y la
+obligación de obtener todo dato a través de un conjunto cerrado de herramientas, ha
+resultado una solución eficaz: el modelo aporta la interpretación del lenguaje, la
+estrategia de búsqueda y la redacción, mientras que los datos los pone siempre la
+base de datos. Esa separación de responsabilidades permite ofrecer un asistente
+útil sin caer en las alucinaciones que harían inservible una recomendación de
+coches.
+
+La segunda conclusión es que, en un sistema basado en datos extraídos de la web,
+la calidad del resultado depende más de la normalización que de la propia
+extracción. La parte mecánica de descargar páginas y extraer campos resultó menos
+problemática que la de convertir esos datos en un modelo canónico fiable. La
+heterogeneidad de formatos, la abundancia de campos ausentes y, sobre todo, la
+información implícita (como el nivel de electrificación, latente en el nombre
+comercial) concentraron buena parte del esfuerzo. Separar la extracción de la
+normalización y unificar los vocabularios en un conjunto cerrado de valores fue lo
+que después permitió que el modelo de lenguaje filtrara con precisión.
+
+La tercera conclusión atañe al valor de la metodología iterativa en un proyecto con
+una fuerte componente exploratoria. Como se documentó en el
+Capítulo~\ref{cap:metodologia}, varias de las decisiones técnicas más acertadas no
+figuraban en el plan inicial, sino que surgieron de la experimentación: el paso de
+un flujo lineal a una arquitectura de \emph{tool calling}, la sustitución de
+\emph{n8n} por un Scrapy programado, el cambio de MySQL a PostgreSQL o la
+simplificación del modelo de datos a una única tabla desnormalizada. Una
+planificación cerrada en cascada no habría podido anticipar estas decisiones, que
+dependían de un conocimiento que solo se adquirió construyendo. El enfoque
+incremental, respaldado por las pruebas automatizadas y la integración continua,
+permitió absorber esa incertidumbre y refactorizar con confianza.
+
+La cuarta conclusión es que una arquitectura de servicios desacoplados y un punto
+de acceso único a los datos aportan beneficios que exceden su coste, incluso en un
+proyecto individual. Concentrar en el \emph{backend} toda la validación, la
+normalización y el acceso a la base de datos, de modo que ni el \emph{frontend} ni
+el \emph{scraper} la tocan directamente, simplificó el razonamiento sobre la
+seguridad y la integridad de los datos, y la contenerización hizo el sistema
+reproducible y fácil de operar.
+
+El trabajo ha supuesto, por último, integrar en un único sistema tecnologías de
+ámbitos distintos (web scraping, bases de datos relacionales, desarrollo de una
+API, integración de modelos de lenguaje y desarrollo \emph{frontend}) y afrontar
+los problemas que aparecen en las fronteras entre ellas, que rara vez se aprecian
+al estudiar cada tecnología por separado. \emph{autoAI} cumple el propósito con el
+que se planteó: acercar la consulta de un catálogo técnico de vehículos a un
+usuario no experto mediante lenguaje natural, sin renunciar a la fiabilidad de los
+datos.
 
 \section{Líneas de trabajo futuro}
+\label{sec:concl-futuro}
+
+El sistema desarrollado cumple los objetivos propuestos, pero su alcance, acotado
+al de un Trabajo de Fin de Grado, deja abiertas varias líneas de evolución. Se
+agrupan según el componente del sistema al que afectan.
+
+\subsection*{Datos y fuentes}
+
+\begin{itemize}
+  \item \textbf{Incorporar nuevas fuentes de datos.} El trabajo se concentró
+        deliberadamente en una única fuente, \texttt{km77.com}, para invertir el
+        esfuerzo en la calidad de la normalización. Una evolución natural sería
+        integrar fuentes adicionales (otros agregadores técnicos o portales de
+        compraventa) para enriquecer el catálogo con, por ejemplo, precios de
+        mercado de vehículos de ocasión, ampliando la capa de normalización para
+        reconciliar los datos de orígenes heterogéneos.
+
+  \item \textbf{Enriquecer el modelo de datos.} El modelo actual cubre las
+        dimensiones que el portal publica de forma estructurada, pero deja fuera
+        atributos que los usuarios solicitan y que hoy figuran en la «lista negra»
+        del asistente (techo solar, color, equipamiento, etiqueta medioambiental,
+        sistemas de asistencia, etc.). Extraer y normalizar estos atributos
+        permitiría al asistente filtrar por ellos en lugar de limitarse a explicar
+        que no los soporta.
+
+  \item \textbf{Vigilar la fragilidad del \emph{scraping}.} Como todo proceso de
+        extracción, el \emph{spider} es sensible a los cambios en la estructura de
+        la web de origen. Sería conveniente añadir comprobaciones automáticas que
+        detecten cuándo la extracción deja de obtener los campos esperados y alerten
+        de ello, antes de que un cambio en la fuente degrade silenciosamente la
+        calidad del catálogo.
+\end{itemize}
+
+\subsection*{Asistente e inteligencia artificial}
+
+\begin{itemize}
+  \item \textbf{Evaluación sistemática de la calidad de las respuestas.} La
+        validación realizada comprueba la estructura y la fundamentación de las
+        respuestas, pero no mide de forma sistemática su \emph{calidad} percibida.
+        Una línea de trabajo relevante sería construir un conjunto de consultas de
+        evaluación con respuestas esperadas y métricas asociadas, que permitiera
+        comparar de forma objetiva distintos modelos de lenguaje o distintas
+        versiones de las instrucciones de sistema.
+
+  \item \textbf{Respuesta en tiempo real (\emph{streaming}).} Actualmente la
+        respuesta se entrega completa al final del \emph{pipeline}. Transmitirla de
+        forma incremental, a medida que el modelo la genera, mejoraría la sensación
+        de inmediatez, aunque exigiría reconciliar el \emph{streaming} con la
+        validación del esquema de bloques y con la fase de hidratación de imágenes.
+
+  \item \textbf{Aprovechar el historial entre sesiones.} El asistente mantiene el
+        contexto dentro de una conversación, pero no aprende de las preferencias
+        manifestadas por el usuario a lo largo del tiempo. Explotar el historial y
+        los favoritos, hoy confinados al navegador, para personalizar las
+        recomendaciones sería una extensión útil, ligada a la línea de gestión de
+        usuarios que se describe a continuación.
+\end{itemize}
+
+\subsection*{Producto y despliegue}
+
+\begin{itemize}
+  \item \textbf{Gestión de usuarios y sincronización.} La decisión de prescindir
+        de cuentas y persistir los datos del usuario solo en el navegador,
+        adecuada al alcance del trabajo, conlleva que los favoritos, el historial y
+        las preferencias queden ligados a un dispositivo concreto. Incorporar
+        autenticación y un almacenamiento de estos datos en el servidor permitiría
+        sincronizarlos entre dispositivos y abriría la puerta a la personalización
+        antes citada.
+
+  \item \textbf{Endurecimiento para producción.} Los mecanismos de seguridad
+        implementados como opcionales (limitación de tasa y clave de API) deberían
+        activarse y reforzarse de cara a un despliegue público real, junto con una
+        gestión de costes del proveedor del modelo de lenguaje, dado que el bucle de
+        \emph{tool calling} implica varias llamadas por consulta.
+
+  \item \textbf{Ampliación de la accesibilidad y la cobertura idiomática.} La
+        interfaz ya contempla ajustes de accesibilidad y dos idiomas (español e
+        inglés). Una auditoría de accesibilidad conforme a estándares reconocidos y
+        la incorporación de nuevos idiomas ampliarían el alcance del sistema a un
+        público más diverso, en línea con su vocación de servir a usuarios no
+        expertos.
+\end{itemize}
+
+Estas líneas no son requisitos pendientes, sino direcciones de crecimiento
+coherentes con la arquitectura construida. La mayoría pueden abordarse de forma
+incremental, sobre los servicios desacoplados ya existentes y sin rehacer el núcleo
+del sistema.
