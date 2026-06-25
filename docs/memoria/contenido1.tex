@@ -5,17 +5,236 @@
 \chapter{Introducción}
 \label{sec:intro}
 
+Este capítulo presenta el contexto del trabajo, el problema que aborda y los
+objetivos que persigue, y termina con la estructura del resto de la memoria. El
+sistema desarrollado, denominado \emph{autoAI}, es una aplicación web que permite
+a una persona sin conocimientos técnicos de automoción encontrar y comparar
+vehículos del mercado español dirigiéndose a un asistente en lenguaje natural,
+que responde a partir de datos técnicos reales y verificables.
+
 \section{Contexto y motivación}
+\label{sec:intro-contexto}
+
+La compra de un automóvil es una de las decisiones de consumo más costosas que
+afronta una persona, y también una de las más complejas. La oferta del mercado
+español es muy amplia y, a la dificultad de elegir entre cientos de modelos, se
+suma la de comprender un dominio técnico cargado de vocabulario especializado:
+carrocerías, tipos de tracción, niveles de electrificación, cifras de consumo
+homologado o categorías de etiqueta medioambiental. Para un comprador no experto,
+traducir una necesidad real, como «un coche cómodo para viajar con la familia y
+que no gaste mucho», en una elección informada exige un esfuerzo considerable de
+aprendizaje previo.
+
+El mercado dispone de buenas herramientas para quien ya domina ese vocabulario.
+Agregadores de información técnica como \texttt{km77.com} mantienen catálogos
+extensos y homogéneos, con la ficha completa de cada versión de cada modelo, y
+los portales de compraventa y los configuradores de los fabricantes permiten
+filtrar y comparar la oferta. Todas estas plataformas comparten, sin embargo, un
+mismo patrón de interacción: es estructurada y la dirige el usuario. La persona
+debe traducir por sí misma su necesidad difusa en una combinación de filtros
+concretos, lo que presupone saber de antemano qué dimensiones existen y qué
+valores son razonables. Esa barrera, la de tener que hablar el idioma de la
+máquina, es la que deja fuera al usuario no experto, que es el público objetivo
+de este trabajo.
+
+En paralelo, los \emph{modelos de lenguaje grandes} (\emph{Large Language
+Models}, LLM) han alcanzado en los últimos años una madurez que hace viable otra
+forma de interacción: que sea la máquina la que se adapte al lenguaje de la
+persona, y no al revés. Un modelo de lenguaje interpreta con soltura peticiones
+expresadas de forma libre y ambigua. Aparece así la posibilidad de invertir el
+patrón de interacción habitual de los buscadores de coches y, en lugar de obligar
+al usuario a rellenar formularios, permitirle expresar su necesidad con sus
+propias palabras.
+
+Esta posibilidad choca con una limitación bien conocida de los modelos de
+lenguaje: la \emph{alucinación}, es decir, su tendencia a generar afirmaciones
+plausibles pero falsas cuando no disponen de la información solicitada. En el
+dominio de los datos de automóviles, donde una cifra de precio o de consumo
+equivocada invalida la respuesta y puede inducir a una mala decisión de compra,
+esa limitación es inaceptable. El conocimiento que un modelo almacena en sus
+parámetros sobre precios y especificaciones concretas es, además, poco fiable y
+se desactualiza con rapidez. De esta tensión nace la motivación del trabajo:
+aprovechar la capacidad de los modelos de lenguaje para \emph{entender} al
+usuario sin renunciar a la fiabilidad de unos datos que solo una fuente
+estructurada y actualizada puede garantizar.
 
 \section{Descripción del problema}
+\label{sec:intro-problema}
+
+El problema que aborda este trabajo puede enunciarse como sigue: \textbf{¿cómo
+ofrecer a un usuario no experto un acceso en lenguaje natural a un catálogo
+técnico de vehículos, de modo que pueda expresar sus necesidades con sus propias
+palabras y reciba recomendaciones fiables, fundamentadas en datos reales y
+verificables, en lugar de en afirmaciones inventadas por el modelo?} De este
+enunciado se desprenden varios subproblemas que el sistema debe resolver de forma
+conjunta.
+
+\begin{description}
+  \item[Disponibilidad de los datos.] No existe una base de datos pública y
+        estructurada del catálogo del mercado español que pueda consultarse
+        directamente. La información técnica existe, pero publicada en sitios web
+        pensados para su consumo humano. La fuente de referencia escogida,
+        \texttt{km77.com}, no ofrece una API, por lo que los datos deben
+        \emph{obtenerse} mediante técnicas de \emph{web scraping} que recorran su
+        catálogo, organizado en una jerarquía de marcas, modelos, submodelos y
+        versiones, y extraigan la ficha de cada versión.
+
+  \item[Heterogeneidad y suciedad de los datos.] Los datos así obtenidos llegan
+        en bruto: como texto con unidades incrustadas («\texttt{177 CV / 130
+        kW}»), con formatos numéricos propios del español, con rangos de fechas
+        escritos como cadenas, con numerosos campos ausentes y, sobre todo, con
+        información implícita. El portal de origen, por ejemplo, no clasifica los
+        vehículos por su grado de electrificación: que un coche sea híbrido suave,
+        autorrecargable o enchufable no figura en ningún campo, sino que está
+        latente en su nombre comercial. Antes de poder explotarlos, los datos
+        deben \emph{normalizarse} a un formato canónico, tipado y de vocabulario
+        cerrado.
+
+  \item[Interpretación de intenciones vagas.] El usuario no experto no pide «un
+        SUV de más de 1.800 mm de longitud con tracción total»; pide «un coche
+        para el campo» o «algo para la familia». El sistema debe ser capaz de
+        traducir esas intenciones difusas en filtros concretos sobre los atributos
+        que realmente existen en los datos.
+
+  \item[Fiabilidad de las respuestas.] La exigencia de que ninguna cifra sea
+        inventada no puede quedar en una recomendación: debe garantizarse por
+        construcción. El sistema ha de impedir que el modelo de lenguaje fabrique
+        datos y obligarlo a que toda afirmación cuantitativa proceda de una
+        consulta real a la base de datos.
+
+  \item[Presentación adecuada.] Una recomendación de coches rara vez se expresa
+        bien solo con texto: a menudo requiere una tabla comparativa, una gráfica
+        de precios o la fotografía del vehículo. El sistema debe producir
+        respuestas \emph{estructuradas} y presentarlas de forma rica y accesible.
+\end{description}
+
+Las tecnologías necesarias para cada una de estas piezas existen y están maduras.
+El reto del trabajo está en integrarlas de forma coherente en un sistema que vaya
+desde la obtención del dato hasta su presentación al usuario, manteniendo a lo
+largo de toda la cadena la condición de que las respuestas se fundamenten en datos
+reales. Para acotar el problema a las dimensiones de un Trabajo de Fin de Grado
+realizado por una sola persona, el sistema renuncia a la gestión de usuarios y de
+cuentas: la información propia de cada usuario (favoritos, historial de
+conversaciones y preferencias) se conserva únicamente en su navegador, lo que
+simplifica la arquitectura sin restar valor a la funcionalidad principal.
 
 \section{Objetivos del trabajo}
+\label{sec:intro-objetivos}
 
 \subsection{Objetivo general}
+\label{sec:intro-objetivo-general}
+
+El objetivo general del trabajo es \textbf{diseñar, implementar y validar una
+aplicación web que permita a una persona no experta consultar y comparar el
+catálogo de vehículos del mercado español mediante un asistente conversacional en
+lenguaje natural, cuyas respuestas se fundamenten siempre en datos técnicos
+reales obtenidos de una fuente externa, sin que el modelo de lenguaje invente
+información}. La aplicación debe combinar ese acceso conversacional con un
+catálogo filtrable clásico, de modo que ambos modos de exploración convivan sobre
+el mismo conjunto de datos.
 
 \subsection{Objetivos específicos}
+\label{sec:intro-objetivos-especificos}
+
+El objetivo general se concreta en los siguientes objetivos específicos, cada uno
+de los cuales se corresponde con una parte identificable del sistema construido:
+
+\begin{description}
+  \item[OE-1. Obtener los datos del catálogo mediante \emph{web scraping}.]
+        Construir un proceso de extracción que recorra la jerarquía de
+        \texttt{km77.com} (marcas, modelos, submodelos y versiones) y obtenga la
+        ficha técnica y comercial de cada versión, de forma responsable con la
+        fuente y susceptible de ejecutarse de manera programada y periódica.
+
+  \item[OE-2. Normalizar los datos a un modelo canónico.] Transformar los datos
+        en bruto, heterogéneos y con información implícita, en un modelo de datos
+        tipado y de vocabulario cerrado; en particular, inferir el tipo de
+        combustible y el nivel de electrificación a partir del nombre de la
+        versión, y representar de forma explícita la ausencia de dato.
+
+  \item[OE-3. Persistir los datos de forma fiable.] Diseñar un modelo de datos
+        relacional y un proceso de ingesta idempotente y tolerante a fallos
+        parciales, de modo que el catálogo pueda regenerarse periódicamente sin
+        duplicar registros y sin que un dato individual defectuoso aborte la carga
+        completa.
+
+  \item[OE-4. Exponer los datos a través de una API.] Desarrollar un
+        \emph{backend} que centralice el acceso a los datos y ofrezca, mediante una
+        API REST, las operaciones de consulta del catálogo, recuperación de fichas
+        y comparación de vehículos, construyendo las consultas de forma segura
+        frente a inyección de SQL.
+
+  \item[OE-5. Construir un asistente conversacional fundamentado en datos.]
+        Implementar un \emph{pipeline} de inteligencia artificial que traduzca el
+        lenguaje natural en consultas estructuradas y que, mediante el patrón de
+        uso de herramientas (\emph{tool calling}), obligue al modelo de lenguaje a
+        obtener todo dato de la base de datos, interpretando intenciones vagas y
+        generando respuestas estructuradas (texto, tablas, gráficas e imágenes).
+
+  \item[OE-6. Desarrollar una interfaz de usuario accesible.] Crear una
+        aplicación web que ofrezca tanto el asistente conversacional como el
+        catálogo filtrable, con visualización de las respuestas estructuradas,
+        gestión local de favoritos e historial, y ajustes de accesibilidad (tema,
+        tamaño de fuente e idioma).
+
+  \item[OE-7. Garantizar la calidad y la reproducibilidad.] Respaldar las
+        funcionalidades críticas con pruebas automatizadas, integrar un flujo de
+        integración continua que valide cada cambio, y empaquetar el sistema en
+        contenedores para que pueda desplegarse de forma reproducible.
+\end{description}
+
+Estos objetivos específicos se traducen más adelante en los requisitos concretos
+del Capítulo~\ref{cap:requisitos} y guían el diseño y la implementación descritos
+en los capítulos posteriores.
 
 \section{Estructura de la memoria}
+\label{sec:intro-estructura}
+
+El resto de la memoria se organiza en los siguientes capítulos, que recorren el
+proyecto desde su fundamentación teórica hasta sus conclusiones:
+
+\begin{description}
+  \item[Capítulo~\ref{cap:estado-arte}, \emph{Estado del arte}.] Revisa los
+        cuatro frentes que confluyen en el trabajo (los buscadores y agregadores
+        de coches existentes, los modelos de lenguaje y el procesamiento de
+        lenguaje natural, las técnicas de \emph{web scraping} y las tecnologías web
+        modernas) y justifica, frente a las alternativas, las decisiones técnicas
+        que se adoptan.
+
+  \item[Capítulo~\ref{cap:requisitos}, \emph{Análisis de requisitos}.] Define qué
+        debe hacer el sistema: describe sus actores, enumera los requisitos
+        funcionales y no funcionales, y especifica los casos de uso, todo ello
+        trazable a los componentes reales de la aplicación.
+
+  \item[Capítulo~\ref{cap:metodologia}, \emph{Metodología y planificación}.]
+        Expone la metodología de desarrollo incremental adoptada, la planificación
+        temporal en fases y su contraste con la ejecución real, con las
+        desviaciones respecto al plan inicial, las herramientas empleadas y los
+        mecanismos de control de versiones e integración continua.
+
+  \item[Capítulo~\ref{cap:diseno}, \emph{Diseño del sistema}.] Describe la
+        arquitectura de cuatro servicios desacoplados, el modelo de datos, el
+        diseño del \emph{backend} y de su API, el \emph{pipeline} que traduce una
+        consulta en lenguaje natural en una respuesta fundamentada en datos, y el
+        diseño de la interfaz de usuario.
+
+  \item[Capítulo~\ref{cap:implementacion}, \emph{Implementación}.] Desciende al
+        detalle del código, siguiendo el recorrido del dato desde su extracción del
+        portal de origen hasta su presentación en la interfaz, pasando por la base
+        de datos, el \emph{backend}, el \emph{pipeline} de inteligencia artificial
+        y la contenerización.
+
+  \item[Capítulo~\ref{cap:pruebas}, \emph{Pruebas y evaluación}.] Presenta la
+        estrategia de pruebas automatizadas del \emph{backend} y del
+        \emph{frontend}, su relación con los requisitos y los resultados obtenidos.
+
+  \item[Capítulo~\ref{cap:conclusiones}, \emph{Conclusiones y trabajo futuro}.]
+        Valora el grado de cumplimiento de los objetivos, extrae las conclusiones
+        del trabajo y propone líneas de evolución para el sistema.
+\end{description}
+
+Cierran el documento la bibliografía y los apéndices, que recogen material
+complementario al cuerpo principal de la memoria.
 
 
 % ---------------------------------------------------------------------
